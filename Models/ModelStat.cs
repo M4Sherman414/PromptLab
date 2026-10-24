@@ -19,7 +19,7 @@ namespace PromptLab.Models
 
         public int BothBad { get; set; }
 
-        public double EloRating { get; set; } = 1200.0; // Standart başlangıç Elo değeri eklenebilir
+        public double EloRating { get; set; } = 1000.0;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }

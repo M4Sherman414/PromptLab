@@ -12,7 +12,7 @@ namespace PromptLab.Models
         public int ComparisonId { get; set; }
 
         [ForeignKey("ComparisonId")]
-        public  Comparison? Comparison { get; set; }
+        public Comparison? Comparison { get; set; }
 
         [Required]
         public int ModelId { get; set; }
@@ -20,8 +20,7 @@ namespace PromptLab.Models
         [ForeignKey("ModelId")]
         public ModelCatalog? ModelCatalog { get; set; }
 
-        [Required]
-        public string Slot { get; set; } = string.Empty; // A / B
+        public ResultSlot Slot { get; set; }
 
         public string? Output { get; set; }
 
@@ -35,7 +34,7 @@ namespace PromptLab.Models
 
         public double? TokensPerSecond { get; set; }
 
-        [Column(TypeName = "decimal(18,6)")]
+        [Column(TypeName = "decimal(18,8)")]
         public decimal? EstimatedCost { get; set; }
 
         public string? Error { get; set; }

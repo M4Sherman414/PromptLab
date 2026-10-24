@@ -15,9 +15,9 @@ namespace PromptLab.Models
         [ForeignKey("ComparisonId")]
         public Comparison? Comparison { get; set; }
 
-        [Required]
-        public string Choice { get; set; } = string.Empty; // A / B / Tie / BothBad
+        public VoteChoice Choice { get; set; }
 
+        [MaxLength(500)]
         public string? Note { get; set; }
 
         public DateTime VotedAt { get; set; } = DateTime.UtcNow;
