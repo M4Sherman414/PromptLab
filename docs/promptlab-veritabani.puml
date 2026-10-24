@@ -1,0 +1,106 @@
+@startuml PromptLab_Veritabani
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+
+title PromptLab – Veritabanı Şeması
+
+entity "AspNetUsers" as Users {
+  * Id : string <<PK>>
+  --
+  UserName : string
+  Email : string
+  PasswordHash : string
+  CreatedAt : DateTime
+}
+
+entity "AspNetRoles" as Roles {
+  * Id : string <<PK>>
+  --
+  Name : string
+}
+
+entity "AspNetUserRoles" as UserRoles {
+  * UserId : string <<FK>>
+  * RoleId : string <<FK>>
+}
+
+entity "ModelCatalog" as Model {
+  * Id : int <<PK>>
+  --
+  OpenRouterModelId : string <<unique>>
+  DisplayName : string
+  InputPricePerMillion : decimal
+  OutputPricePerMillion : decimal
+  IsFree : bool
+  IsActive : bool
+  LastSyncedAt : DateTime?
+}
+
+entity "UserApiKey" as ApiKey {
+  * Id : int <<PK>>
+  --
+  UserId : string <<FK, unique>>
+  EncryptedKey : string
+  LastFour : string
+  CreatedAt : DateTime
+}
+
+entity "Comparison" as Comparison {
+  * Id : int <<PK>>
+  --
+  UserId : string <<FK>>
+  SystemPrompt : text?
+  UserPrompt : text
+  Temperature : double?
+  MaxTokens : int?
+  IsBlind : bool
+  CreatedAt : DateTime
+}
+
+entity "ComparisonResult" as Result {
+  * Id : int <<PK>>
+  --
+  ComparisonId : int <<FK>>
+  ModelId : int <<FK>>
+  Slot : A / B
+  Output : text?
+  LatencyMs : int?
+  TimeToFirstTokenMs : int?
+  InputTokens : int?
+  OutputTokens : int?
+  TokensPerSecond : double?
+  EstimatedCost : decimal?
+  Error : text?
+}
+
+entity "Vote" as Vote {
+  * Id : int <<PK>>
+  --
+  ComparisonId : int <<FK, unique>>
+  Choice : A / B / Tie / BothBad
+  Note : string?
+  VotedAt : DateTime
+}
+
+entity "ModelStat" as Stat {
+  * ModelId : int <<PK, FK>>
+  --
+  Wins : int
+  Losses : int
+  Ties : int
+  BothBad : int
+  EloRating : double
+  UpdatedAt : DateTime
+}
+
+Users ||--o{ UserRoles
+Roles ||--o{ UserRoles
+Users ||--o| ApiKey
+Users ||--o{ Comparison
+Comparison ||--|{ Result
+Model ||--o{ Result
+Comparison ||--o| Vote
+Model ||--o| Stat
+
+@enduml
