@@ -69,4 +69,3 @@ dotnet run
 - Ardından API_KEY inizi sisteme kaydetmelisiniz.
 
 - Sonrasında free veya ücretli yapayzekaları tercihinize göre kullanabilir karşılaştırabilirsiniz.
-
