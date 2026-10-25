@@ -1,8 +1,68 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+    .chat-container {
+        max-width: 720px;
+        margin: 0 auto;
+        min-height: 70vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .prompt-input-group {
+        background-color: #ffffff;
+        border: 1px solid #ced4da;
+        border-radius: 12px;
+        padding: 6px 16px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .prompt-input-group:focus-within {
+        border-color: #adb5bd;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .prompt-input {
+        border: none;
+        box-shadow: none !important;
+        background: transparent;
+        padding: 10px 0;
+        font-size: 1.05rem;
+    }
+
+    .btn-send {
+        border: none;
+        background: transparent;
+        color: #495057;
+        padding: 0 4px;
+    }
+
+    .btn-send:hover {
+        color: #000000;
+    }
+</style>
+
+<div class="chat-container">
+    <!-- Sayfa Başlığı -->
+    <div class="text-center mb-5">
+        <h1 class="fw-normal display-6 text-dark">Where to start?</h1>
+    </div>
+
+    <!-- Central Prompt Input Box -->
+    <form asp-controller="Home" asp-action="Index" method="post" class="w-100">
+        <div class="prompt-input-group d-flex align-items-center shadow-sm">
+            <input type="text" 
+                   name="userPrompt" 
+                   class="form-control prompt-input" 
+                   placeholder="Ask" 
+                   autocomplete="off" 
+                   required />
+            <button type="submit" class="btn btn-send ms-2">
+                <i class="bi bi-send fs-5"></i>
+            </button>
+        </div>
+    </form>
 </div>
