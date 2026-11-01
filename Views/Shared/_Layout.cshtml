@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="utf-8" />
@@ -94,16 +96,50 @@
                         <span>Chats</span>
                     </a>
                 </li>
+                @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
+                {
+                    <li class="nav-item mb-1">
+                        <a class="nav-link" href="/swagger">
+                            <i class="bi bi-file-earmark-code fs-5"></i>
+                            <span>API (Swagger)</span>
+                        </a>
+                    </li>
+                }
             </ul>
 
             <hr class="my-2 text-secondary opacity-25">
 
-            <!-- Kullanıcı Hesabı -->
+            <!-- Kullanıcı Hesabı ve Oturum Alanı -->
             <div class="pt-2">
-                <a href="#" class="nav-link">
-                    <i class="bi bi-person-circle fs-5"></i>
-                    <span>Account</span>
-                </a>
+                @if (SignInManager.IsSignedIn(User))
+                {
+                    <div class="px-2 mb-2 text-truncate fw-semibold text-muted small">
+                        <i class="bi bi-person-circle me-1"></i> @User.Identity?.Name
+                    </div>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="w-100">
+                        <button type="submit" class="nav-link text-danger w-100 text-start border-0 bg-transparent">
+                            <i class="bi bi-box-arrow-right fs-5"></i>
+                            <span>Çıkış Yap</span>
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <ul class="nav nav-pills flex-column">
+                        <li class="nav-item mb-1">
+                            <a class="nav-link" asp-controller="Account" asp-action="Login">
+                                <i class="bi bi-box-arrow-in-right fs-5"></i>
+                                <span>Giriş Yap</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account" asp-action="Register">
+                                <i class="bi bi-person-plus fs-5"></i>
+                                <span>Kayıt Ol</span>
+                            </a>
+                        </li>
+                    </ul>
+                }
             </div>
         </div>
 
