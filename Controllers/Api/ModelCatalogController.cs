@@ -45,7 +45,7 @@ public class ModelCatalogController : ControllerBase
     }
 
     [HttpPost]
-    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ModelCatalogDto>> Create(ModelCatalogCreateDto dto)
     {
         var exists = await _db.ModelCatalogs.AnyAsync(m => m.OpenRouterModelId == dto.OpenRouterModelId);
@@ -71,7 +71,7 @@ public class ModelCatalogController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, ModelCatalogUpdateDto dto)
     {
         var model = await _db.ModelCatalogs.FindAsync(id);
@@ -91,7 +91,7 @@ public class ModelCatalogController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var model = await _db.ModelCatalogs.FindAsync(id);
