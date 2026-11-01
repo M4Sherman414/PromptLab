@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="utf-8" />
@@ -30,6 +32,10 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .sidebar .nav-link.disabled {
+            color: #adb5bd;
         }
 
         .sidebar .nav-link:hover {
@@ -77,33 +83,67 @@
                 </li>
                 <hr class="my-2 text-secondary opacity-25">
                 <li class="nav-item mb-1">
-                    <a href="#" class="nav-link">
+                    <a class="nav-link disabled" aria-disabled="true">
                         <i class="bi bi-star fs-5"></i>
                         <span>Leaderboard</span>
                     </a>
                 </li>
                 <li class="nav-item mb-1">
-                    <a href="#" class="nav-link">
+                    <a class="nav-link disabled" aria-disabled="true">
                         <i class="bi bi-cpu fs-5"></i>
                         <span>Models</span>
                     </a>
                 </li>
                 <li class="nav-item mb-1">
-                    <a href="#" class="nav-link">
+                    <a class="nav-link disabled" aria-disabled="true">
                         <i class="bi bi-chat-left-text fs-5"></i>
                         <span>Chats</span>
                     </a>
                 </li>
+                @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
+                {
+                    <li class="nav-item mb-1">
+                        <a class="nav-link" href="/swagger">
+                            <i class="bi bi-file-earmark-code fs-5"></i>
+                            <span>API (Swagger)</span>
+                        </a>
+                    </li>
+                }
             </ul>
 
             <hr class="my-2 text-secondary opacity-25">
 
-            <!-- Kullanıcı Hesabı -->
+            <!-- Kullanıcı Hesabı ve Oturum Alanı -->
             <div class="pt-2">
-                <a href="#" class="nav-link">
-                    <i class="bi bi-person-circle fs-5"></i>
-                    <span>Account</span>
-                </a>
+                @if (SignInManager.IsSignedIn(User))
+                {
+                    <div class="px-2 mb-2 text-truncate fw-semibold text-muted small">
+                        <i class="bi bi-person-circle me-1"></i> @User.Identity?.Name
+                    </div>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="w-100">
+                        <button type="submit" class="nav-link text-danger w-100 text-start border-0 bg-transparent">
+                            <i class="bi bi-box-arrow-right fs-5"></i>
+                            <span>Çıkış Yap</span>
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <ul class="nav nav-pills flex-column">
+                        <li class="nav-item mb-1">
+                            <a class="nav-link" asp-controller="Account" asp-action="Login">
+                                <i class="bi bi-box-arrow-in-right fs-5"></i>
+                                <span>Giriş Yap</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account" asp-action="Register">
+                                <i class="bi bi-person-plus fs-5"></i>
+                                <span>Kayıt Ol</span>
+                            </a>
+                        </li>
+                    </ul>
+                }
             </div>
         </div>
 
@@ -115,6 +155,7 @@
         </div>
     </div>
 
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
