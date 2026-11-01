@@ -37,7 +37,7 @@ public static class DbSeeder
             }
         }
 
-        if(!await userManager.IsInRoleAsync(admin, password))
+        if(!await userManager.IsInRoleAsync(admin, "Admin"))
         {
             await userManager.AddToRoleAsync(admin,"Admin");
         }
