@@ -62,6 +62,23 @@ dotnet build # hata var mı görmek için kullanılabilir.(optional)
 dotnet run
 ```
 
+#### Admin Hesabı Oluşturmak için
+
+Admin bilgileri her üyenin kendi bilgisayarında user-secrets'a kaydedilir. Verilen komutla admin bilgilerinizi kaydedin:
+
+```bash
+dotnet user-secrets set "AdminUser:Email" "admin@promptlab.local"
+dotnet user-secrets set "AdminUser:Password" "kendi-sifreniz"
+```
+
+Şifre Identity'nin kurallarına uymalı: en az 8 karakter, büyük harf, küçük harf, rakam ve özel karakter. Uymazsa seed hata verir ve hatanın açıklaması terminalde görünür.
+
+#### Swagger Adresi
+
+```bash
+http://localhost:PORT/swagger
+```
+
 #### OpenRouter API_KEY Kullanımı
 
 - Öncelikle https://www.openrouter.ai adresinden bir kullanıcı hesabı açmalısınız
