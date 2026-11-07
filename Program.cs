@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using PromptLab.Data;
 using PromptLab.Models;
@@ -39,6 +40,11 @@ builder.Services.AddHttpClient<OpenRouterClient>(client =>
 });
 
 builder.Services.AddScoped<ModelSyncService>();
+
+builder.Services.AddDataProtection()
+    .SetApplicationName("PromptLab");
+
+builder.Services.AddScoped<ApiKeyService>();
 
 var app = builder.Build();
 

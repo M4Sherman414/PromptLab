@@ -1,0 +1,30 @@
+@model PromptLab.Models.ViewModels.ModelEditViewModel
+@{
+    ViewData["Title"] = "Modeli düzenle";
+}
+
+<h1>Modeli düzenle</h1>
+<p><code>@Model.OpenRouterModelId</code></p>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="OpenRouterModelId" />
+
+    <div class="mb-3">
+        <label asp-for="DisplayName" class="form-label"></label>
+        <input asp-for="DisplayName" class="form-control" />
+        <span asp-validation-for="DisplayName" class="text-danger"></span>
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label"></label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Kaydet</button>
+    <a asp-action="Index" class="btn btn-link">Vazgeç</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
