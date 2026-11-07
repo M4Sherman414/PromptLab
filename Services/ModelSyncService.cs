@@ -53,7 +53,9 @@ public class ModelSyncService
             }
             else
             {
-                var name = string.IsNullOrWhiteSpace(remote.Name) ? remote.Id : remote.Name.Trim();
+                var name = string.IsNullOrWhiteSpace(remote.Name) 
+                ? remote.Id 
+                : remote.Name.Trim();
                 if (name.Length > 200)
                 {
                     name = name[..200];
