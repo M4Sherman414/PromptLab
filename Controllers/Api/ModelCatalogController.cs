@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PromptLab.Data;
 using PromptLab.Models;
 using PromptLab.Models.Dtos;
+using PromptLab.Services;
 
 namespace PromptLab.Controllers.Api;
 
@@ -109,5 +110,19 @@ public class ModelCatalogController : ControllerBase
         _db.ModelCatalogs.Remove(model);
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    [HttpPost("sync")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<SyncResult>> Sync([FromServices] ModelSyncService sync)
+    {
+        try
+        {
+            return await sync.SyncAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return StatusCode(502, "OpenRouter'a bağlanılamadı.");
+        }
     }
 }
