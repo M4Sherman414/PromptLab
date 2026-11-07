@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using PromptLab.Data;
 using PromptLab.Models;
-using PromptLab.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,14 +30,6 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-builder.Services.AddHttpClient<OpenRouterClient>(client =>
-{
-    client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
-    client.Timeout = TimeSpan.FromSeconds(120);
-});
-
-builder.Services.AddScoped<ModelSyncService>();
 
 var app = builder.Build();
 
