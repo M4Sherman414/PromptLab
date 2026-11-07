@@ -100,8 +100,24 @@
                         <span>Chats</span>
                     </a>
                 </li>
+                @if (SignInManager.IsSignedIn(User))
+                {
+                    <li class="nav-item mb-1">
+                        <a class="nav-link" asp-controller="ApiKey" asp-action="Index">
+                            <i class="bi bi-key fs-5"></i>
+                            <span>API anahtarım</span>
+                        </a>
+                    </li>
+                }
                 @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
                 {
+                    <hr class="my-2 text-secondary opacity-25">
+                    <li class="nav-item mb-1">
+                        <a class="nav-link" asp-controller="AdminModels" asp-action="Index">
+                            <i class="bi bi-sliders fs-5"></i>
+                            <span>Modeller (Admin)</span>
+                        </a>
+                    </li>
                     <li class="nav-item mb-1">
                         <a class="nav-link" href="/swagger">
                             <i class="bi bi-file-earmark-code fs-5"></i>

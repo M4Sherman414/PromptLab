@@ -1,0 +1,75 @@
+@model List<PromptLab.Models.ModelCatalog>
+@{
+    ViewData["Title"] = "Modeller";
+    var q = ViewData["Q"] as string;
+    var onlyFree = ViewData["OnlyFree"] is true;
+}
+
+<h1>Modeller</h1>
+
+<form asp-action="Sync" method="post" class="mb-3">
+    <button type="submit" class="btn btn-primary">Senkronize et</button>
+</form>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success">@message</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<form method="get" class="row g-2 align-items-center mb-3">
+    <div class="col-sm-6">
+        <input type="search" name="q" value="@q" class="form-control" placeholder="Model adı ya da kimliği" />
+    </div>
+    <div class="col-auto form-check ms-2">
+        <input type="checkbox" name="onlyFree" value="true" id="onlyFree" class="form-check-input" checked="@onlyFree" />
+        <label for="onlyFree" class="form-check-label">Sadece ücretsiz</label>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-secondary">Filtrele</button>
+    </div>
+</form>
+
+<p class="text-muted">@Model.Count model listeleniyor.</p>
+
+<div class="table-responsive">
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>OpenRouter kimliği</th>
+                <th class="text-end">Girdi ($/1M)</th>
+                <th class="text-end">Çıktı ($/1M)</th>
+                <th>Durum</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in Model)
+            {
+                <tr class="@(m.IsActive ? "" : "text-muted")">
+                    <td>
+                        @m.DisplayName
+                        @if (m.IsFree)
+                        {
+                            <span class="badge bg-success">Ücretsiz</span>
+                        }
+                    </td>
+                    <td><code>@m.OpenRouterModelId</code></td>
+                    <td class="text-end">@m.InputPricePerMillion.ToString("0.####")</td>
+                    <td class="text-end">@m.OutputPricePerMillion.ToString("0.####")</td>
+                    <td>@(m.IsActive ? "Aktif" : "Pasif")</td>
+                    <td class="text-nowrap">
+                        <a asp-action="Edit" asp-route-id="@m.Id" class="btn btn-sm btn-outline-primary">Düzenle</a>
+                        <form asp-action="ToggleActive" asp-route-id="@m.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">@(m.IsActive ? "Pasifleştir" : "Aktifleştir")</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

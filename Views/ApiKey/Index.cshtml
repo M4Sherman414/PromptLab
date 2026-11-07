@@ -1,0 +1,43 @@
+@model PromptLab.Models.ViewModels.ApiKeyViewModel
+@{
+    ViewData["Title"] = "API anahtarım";
+}
+
+<h1>API anahtarım</h1>
+<p class="text-muted">Sohbet ve karşılaştırmalar sizin OpenRouter anahtarınızla yapılır. Anahtar şifrelenerek saklanır ve kaydedildikten sonra bir daha ekranda gösterilmez.</p>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success">@message</div>
+}
+
+@if (Model.HasKey)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <p class="mb-1">Kayıtlı anahtar: <code>sk-or-…@Model.LastFour</code></p>
+            <p class="text-muted small mb-3">Kaydedilme: @Model.SavedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+            <form asp-action="Delete" method="post" onsubmit="return confirm('Anahtar silinsin mi?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm">Anahtarı sil</button>
+            </form>
+        </div>
+    </div>
+}
+
+<h2 class="h5">@(Model.HasKey ? "Anahtarı değiştir" : "Anahtar ekle")</h2>
+
+<form asp-action="Save" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="NewKey" class="form-label"></label>
+        <input asp-for="NewKey" class="form-control" autocomplete="off" />
+        <span asp-validation-for="NewKey" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Kaydet</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
