@@ -38,6 +38,8 @@ builder.Services.AddHttpClient<OpenRouterClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(120);
 });
 
+builder.Services.AddScoped<ModelSyncService>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
