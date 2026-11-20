@@ -74,11 +74,16 @@
             </div>
 
             <!-- Navigasyon Linkleri -->
+            @{
+                var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+                var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+            }
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item mb-1">
-                    <a asp-controller="Home" asp-action="Index" class="nav-link active">
+                    <a asp-controller="Chat" asp-action="Create"
+                       class="nav-link @(currentController == "Chat" && currentAction == "Create" ? "active" : "")">
                         <i class="bi bi-plus-lg fs-5"></i>
-                        <span>New chat</span>
+                        <span>Yeni sohbet</span>
                     </a>
                 </li>
                 <hr class="my-2 text-secondary opacity-25">
@@ -95,9 +100,10 @@
                     </a>
                 </li>
                 <li class="nav-item mb-1">
-                    <a class="nav-link disabled" aria-disabled="true">
+                    <a asp-controller="Chat" asp-action="Index"
+                       class="nav-link @(currentController == "Chat" && currentAction != "Create" ? "active" : "")">
                         <i class="bi bi-chat-left-text fs-5"></i>
-                        <span>Chats</span>
+                        <span>Sohbetlerim</span>
                     </a>
                 </li>
                 @if (SignInManager.IsSignedIn(User))
