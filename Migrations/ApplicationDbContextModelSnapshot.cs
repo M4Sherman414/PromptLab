@@ -221,6 +221,88 @@ namespace PromptLab.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("PromptLab.Models.ChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatSessionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("EstimatedCost")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("numeric(18,8)");
+
+                    b.Property<int?>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LatencyMs")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TimeToFirstTokenMs")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatSessionId", "CreatedAt");
+
+                    b.ToTable("ChatMessages");
+                });
+
+            modelBuilder.Entity("PromptLab.Models.ChatSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ModelId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SystemPrompt")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModelId");
+
+                    b.HasIndex("UserId", "UpdatedAt");
+
+                    b.ToTable("ChatSessions");
+                });
+
             modelBuilder.Entity("PromptLab.Models.Comparison", b =>
                 {
                     b.Property<int>("Id")
@@ -493,6 +575,36 @@ namespace PromptLab.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PromptLab.Models.ChatMessage", b =>
+                {
+                    b.HasOne("PromptLab.Models.ChatSession", "ChatSession")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatSession");
+                });
+
+            modelBuilder.Entity("PromptLab.Models.ChatSession", b =>
+                {
+                    b.HasOne("PromptLab.Models.ModelCatalog", "ModelCatalog")
+                        .WithMany()
+                        .HasForeignKey("ModelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PromptLab.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ModelCatalog");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PromptLab.Models.Comparison", b =>
                 {
                     b.HasOne("PromptLab.Models.ApplicationUser", "User")
@@ -559,6 +671,11 @@ namespace PromptLab.Migrations
             modelBuilder.Entity("PromptLab.Models.ApplicationUser", b =>
                 {
                     b.Navigation("ApiKey");
+                });
+
+            modelBuilder.Entity("PromptLab.Models.ChatSession", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("PromptLab.Models.Comparison", b =>
