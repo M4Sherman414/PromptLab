@@ -11,6 +11,11 @@
     <div class="alert alert-success">@message</div>
 }
 
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-warning">@error</div>
+}
+
 @if (Model.HasKey)
 {
     <div class="card mb-4">

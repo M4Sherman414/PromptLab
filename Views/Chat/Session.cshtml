@@ -1,0 +1,84 @@
+@using PromptLab.Models
+@model ChatSession
+@{
+    ViewData["Title"] = Model.Title;
+    var hasApiKey = ViewBag.HasApiKey as bool? ?? true;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="h3 mb-1">@Model.Title</h1>
+        <div class="small text-muted">
+            <i class="bi bi-cpu me-1"></i>
+            @(Model.ModelCatalog?.DisplayName ?? "Model")
+            <code>@Model.ModelCatalog?.OpenRouterModelId</code>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Sohbetlerim</a>
+        <a asp-action="Create" class="btn btn-outline-primary btn-sm">Yeni sohbet</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.SystemPrompt))
+{
+    <div class="alert alert-light border small mb-3">
+        <strong>Sistem talimatı:</strong> @Model.SystemPrompt
+    </div>
+}
+
+@if (!hasApiKey)
+{
+    <div class="alert alert-warning">
+        Mesaj gönderebilmek için önce <a asp-controller="ApiKey" asp-action="Index" class="alert-link">API anahtarınızı</a> kaydetmelisiniz.
+    </div>
+}
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="d-flex flex-column gap-3 mb-4">
+    @if (Model.Messages.Count == 0)
+    {
+        <div class="text-muted text-center py-4 border rounded bg-white">
+            Sohbete başlamak için aşağıdan ilk mesajınızı gönderin.
+        </div>
+    }
+    else
+    {
+        @foreach (var msg in Model.Messages.OrderBy(m => m.CreatedAt).ThenBy(m => m.Id))
+        {
+            var isUser = msg.Role == ChatRole.User;
+            <div class="d-flex @(isUser ? "justify-content-end" : "justify-content-start")">
+                <div class="card @(isUser ? "bg-primary text-white" : "bg-white")" style="max-width: 80%;">
+                    <div class="card-body py-2 px-3">
+                        <div class="small fw-semibold mb-1 @(isUser ? "text-white-50" : "text-muted")">
+                            @(isUser ? "Siz" : (Model.ModelCatalog?.DisplayName ?? "Asistan"))
+                        </div>
+                        <div style="white-space: pre-wrap;">@msg.Content</div>
+                        @if (!isUser)
+                        {
+                            <div class="border-top mt-2 pt-1 small text-muted d-flex flex-wrap gap-3">
+                                <span>Giriş: @(msg.InputTokens ?? 0) token</span>
+                                <span>Çıkış: @(msg.OutputTokens ?? 0) token</span>
+                                <span>Süre: @(msg.LatencyMs ?? 0) ms</span>
+                                <span>Maliyet: $@((msg.EstimatedCost ?? 0m).ToString("0.######"))</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<form asp-action="SendMessage" asp-route-id="@Model.Id" method="post">
+    <div class="input-group">
+        <textarea name="prompt" class="form-control" rows="2" placeholder="Mesajınızı yazın..." required></textarea>
+        <button type="submit" class="btn btn-primary" disabled="@(!hasApiKey)">
+            <i class="bi bi-send me-1"></i> Gönder
+        </button>
+    </div>
+</form>
