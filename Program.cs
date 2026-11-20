@@ -45,6 +45,7 @@ builder.Services.AddDataProtection()
     .SetApplicationName("PromptLab");
 
 builder.Services.AddScoped<ApiKeyService>();
+builder.Services.AddScoped<ChatService>();
 
 var app = builder.Build();
 
