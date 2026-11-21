@@ -25,7 +25,7 @@ Bu gösterim, Bilal'in liderlik ettiği 2-4. haftaları kapsar: kimlik doğrulam
 | 5 | API anahtarı olmadan "Yeni sohbet" | Bilal | Anahtar sayfasına yönlendirme ve "kaldığınız sayfaya döneceksiniz" bilgisi |
 | 6 | Anahtar kaydetme | Bilal | Kaydedince sohbet ekranına geri dönüş, yalnızca son 4 karakter görünür |
 | 7 | pgAdmin'de `UserApiKeys` tablosu | Bilal | Anahtarın şifreli hali (Data Protection) |
-| 8 | Ücretsiz modelle 3-4 mesajlık sohbet | Bilal | Sayfa yenilenmeden cevap, "yazıyor…" göstergesi |
+| 8 | Ücretsiz modelle 3-4 mesajlık sohbet | Bilal | Mesaj hemen görünür, ardından "yazıyor…", sonra cevap (sayfa yenilenmez) |
 | 9 | Her cevabın altındaki ölçümler | Bilal | **Giriş token sayısının her mesajda büyümesi (+N)**, süre, maliyet, üstteki toplamlar |
 | 10 | Sohbet servisinin içi | Burhan | Geçmişin mesaj listesine çevrilip OpenRouter'a gönderilmesi, usage kaydı |
 | 11 | Sohbetlerim listesi ve eski bir sohbete devam | Burhan | Başlığın ilk mesajdan oluşması, son güncellenene göre sıralama |
@@ -37,7 +37,7 @@ Bu gösterim, Bilal'in liderlik ettiği 2-4. haftaları kapsar: kimlik doğrulam
 - **API anahtarı nasıl korunuyor?** `ApiKeyService` anahtarı ASP.NET Core Data Protection ile şifreleyip saklar. Ekranda yalnızca son 4 karakter gösterilir. Anahtar yalnızca istek anında çözülür.
 - **Anahtarı olmayan kullanıcı nasıl yönlendiriliyor?** `Filters/RequireApiKeyAttribute.cs` içindeki action filter, işlemden önce anahtarı kontrol eder. Anahtar yoksa `returnUrl` ile anahtar sayfasına gönderir. AJAX isteğinde yönlendirme yerine 409 ve JSON döner. Bu filtre 5-7. haftalarda karşılaştırma ve turnuva ekranlarında da kullanılacak.
 - **Açık yönlendirme (open redirect) riski?** `returnUrl` yalnızca `Url.IsLocalUrl` doğrularsa kullanılır, `LocalRedirect` ile yönlendirilir. Dış bir adres verilirse yok sayılır.
-- **Mesaj sayfa yenilenmeden nasıl geliyor?** `wwwroot/js/chat.js` formu `fetch` ile gönderir. Sunucu `_ChatTurn` partial view'ını HTML olarak döner ve bu HTML listeye eklenir. JavaScript kapalıysa form normal POST ile çalışmaya devam eder.
+- **Mesaj sayfa yenilenmeden nasıl geliyor?** `wwwroot/js/chat.js` kullanıcının mesajını hemen ekrana ekler ve formu `fetch` ile gönderir. Model cevap verene kadar "yazıyor…" görünür. Sunucu asistan cevabını `_ChatMessage` partial view'ı olarak HTML döner ve bu HTML listeye eklenir. İstek başarısız olursa mesaj balonu kaldırılır ve metin kutuya geri konur. JavaScript kapalıysa form normal POST ile çalışmaya devam eder.
 - **Maliyet nereden geliyor?** OpenRouter cevabındaki `usage.cost` alanından. Bu alan yoksa model kataloğundaki milyon token fiyatından hesaplanır.
 - **Streaming neden yok?** Plan gereği 5. haftada ekleniyor. Bu hafta cevap model bitirince tek seferde geliyor. Sayfa AJAX'a geçtiği için streaming'e geçiş kolaylaşacak.
 

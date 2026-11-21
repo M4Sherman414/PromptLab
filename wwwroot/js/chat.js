@@ -1,7 +1,7 @@
 // Sohbet sayfası (Views/Chat/Session.cshtml)
 //
-// - Mesajı sayfayı yenilemeden (fetch ile) gönderir, cevap gelene kadar "yazıyor…" gösterir.
-// - Sunucu cevabı _ChatTurn partial view'ı olarak HTML döner; doğrudan listeye eklenir.
+// - Kullanıcının mesajı hemen ekranda görünür, ardından cevap gelene kadar "yazıyor…" gösterilir.
+// - Mesaj fetch ile gönderilir; sunucu model cevabını _ChatMessage partial view'ı olarak HTML döner.
 // - Enter gönderir, Shift+Enter yeni satır açar.
 // - Sohbet toplamlarını (token, süre, maliyet) ve giriş token artışını hesaplar.
 // JavaScript kapalıysa form normal POST ile çalışmaya devam eder.
@@ -87,6 +87,24 @@
         set("cost", "$" + cost.toFixed(6).replace(/\.?0+$/, "") );
     }
 
+    // Sunucudaki _ChatMessage partial'ının kullanıcı balonuyla aynı yapı.
+    // textContent kullanıldığı için mesajdaki HTML çalıştırılmaz.
+    function createUserRow(text) {
+        const row = document.createElement("div");
+        row.className = "chat-row chat-row-user";
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble";
+        const author = document.createElement("div");
+        author.className = "chat-author";
+        author.textContent = "Siz";
+        const content = document.createElement("div");
+        content.className = "chat-content";
+        content.textContent = text;
+        bubble.append(author, content);
+        row.appendChild(bubble);
+        return row;
+    }
+
     async function send() {
         const text = prompt.value.trim();
         if (busy || !text) {
@@ -95,6 +113,15 @@
 
         showError("");
         const body = new FormData(form); // anti-forgery token da formun içinde
+
+        // 1) Kullanıcının mesajı hemen ekranda görünür, kutu temizlenir.
+        const userRow = createUserRow(text);
+        messages.insertBefore(userRow, typing);
+        empty.classList.add("d-none");
+        prompt.value = "";
+        autoResize();
+
+        // 2) Ardından model cevabı beklenirken "yazıyor…" gösterilir.
         setBusy(true);
 
         try {
@@ -116,9 +143,9 @@
                 throw new Error((data && data.error) || "Mesaj gönderilemedi (" + response.status + ").");
             }
 
+            // 3) Sunucu yalnızca asistan cevabını (_ChatMessage partial) döner; "yazıyor…" balonunun yerine geçer.
             const html = await response.text();
-            messages.insertAdjacentHTML("beforeend", html);
-            empty.classList.add("d-none");
+            typing.insertAdjacentHTML("beforebegin", html);
 
             // İlk mesajdan sonra sunucu başlığı mesajdan üretir; sayfada da güncellenir.
             if (title.textContent.trim() === "Yeni sohbet") {
@@ -127,11 +154,16 @@
                 document.title = title.textContent + " - PROMPT Lab";
             }
 
-            prompt.value = "";
-            autoResize();
             updateMetrics();
         } catch (err) {
-            // Mesaj kaybolmasın diye kutuda bırakılır, kullanıcı tekrar deneyebilir.
+            // İstek başarısızsa sunucu mesajı kaydetmemiştir: balon kaldırılır,
+            // metin kutuya geri konur, kullanıcı tekrar deneyebilir.
+            userRow.remove();
+            if (!messages.querySelector(".chat-row:not(#chat-typing)")) {
+                empty.classList.remove("d-none");
+            }
+            prompt.value = text;
+            autoResize();
             showError(err.message || "Beklenmeyen bir hata oluştu.");
         } finally {
             setBusy(false);

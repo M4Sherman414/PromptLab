@@ -106,7 +106,8 @@ public class ChatController : Controller
             {
                 // Servis oturumu takip ettiği için EF, ChatSession bağlantısını kendisi doldurur.
                 ViewData["ModelName"] = turn.AssistantMessage.ChatSession?.ModelCatalog?.DisplayName;
-                return PartialView("_ChatTurn", turn);
+                // Kullanıcının mesajı tarayıcıda zaten gösterildi; yalnızca model cevabı döner.
+                return PartialView("_ChatMessage", turn.AssistantMessage);
             }
         }
         catch (MissingApiKeyException ex)
