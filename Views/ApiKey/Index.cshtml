@@ -20,8 +20,40 @@
 {
     <div class="card mb-4">
         <div class="card-body">
-            <p class="mb-1">Kayıtlı anahtar: <code>sk-or-…@Model.LastFour</code></p>
-            <p class="text-muted small mb-3">Kaydedilme: @Model.SavedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+            <p class="mb-1">
+                Kayıtlı anahtar: <code>sk-or-…@Model.LastFour</code>
+                @switch (Model.Check?.Status)
+                {
+                    case PromptLab.Services.ApiKeyStatus.Valid:
+                        <span class="badge bg-success ms-1"><i class="bi bi-check-circle me-1"></i>OpenRouter: geçerli</span>
+                        break;
+                    case PromptLab.Services.ApiKeyStatus.Invalid:
+                        <span class="badge bg-danger ms-1"><i class="bi bi-x-circle me-1"></i>OpenRouter: tanınmıyor (401)</span>
+                        break;
+                    default:
+                        <span class="badge bg-secondary ms-1">OpenRouter: doğrulanamadı</span>
+                        break;
+                }
+            </p>
+            <p class="text-muted small mb-2">Kaydedilme: @Model.SavedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+
+            @if (Model.Check?.Status == PromptLab.Services.ApiKeyStatus.Invalid)
+            {
+                <div class="alert alert-danger small py-2">
+                    OpenRouter bu anahtarı tanımıyor; anahtar silinmiş ya da hatalı kopyalanmış olabilir.
+                    Sohbet edebilmek için aşağıdan geçerli bir anahtar girin.
+                </div>
+            }
+            else if (Model.Check?.Info is { } info)
+            {
+                <p class="text-muted small mb-3">
+                    @if (!string.IsNullOrEmpty(info.Label)) { <span>Label: <code>@info.Label</code> · </span> }
+                    Usage: $@((info.Usage ?? 0m).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture))
+                    · Limit: @(info.Limit is null ? "limitsiz" : "$" + info.Limit.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))
+                    @if (info.LimitRemaining is not null) { <span>· Kalan: $@info.LimitRemaining.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)</span> }
+                    @if (info.IsFreeTier) { <span class="badge bg-light text-dark border ms-1">free tier</span> }
+                </p>
+            }
             <form asp-action="Delete" method="post" onsubmit="return confirm('Anahtar silinsin mi?');">
                 <button type="submit" class="btn btn-outline-danger btn-sm">Anahtarı sil</button>
             </form>
@@ -33,6 +65,15 @@
 
 <form asp-action="Save" method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    @if (!string.IsNullOrEmpty(Model.ReturnUrl))
+    {
+        <div class="alert alert-info small">
+            <i class="bi bi-arrow-return-left me-1"></i>
+            Anahtarı kaydettikten sonra kaldığınız sayfaya döneceksiniz.
+        </div>
+    }
 
     <div class="mb-3">
         <label asp-for="NewKey" class="form-label"></label>

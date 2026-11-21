@@ -18,6 +18,26 @@ public class OpenRouterClient
         return result?.Data ?? new List<OpenRouterModel>();
     }
 
+    /// <summary>
+    /// Anahtarı OpenRouter'a doğrulatır (GET /key, kredi harcamaz).
+    /// Anahtar tanınmıyorsa (401) null döner; diğer hatalarda HttpRequestException fırlatır.
+    /// </summary>
+    public async Task<OpenRouterKeyInfo?> GetKeyInfoAsync(string apiKey, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "key");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
+
+        using var response = await _http.SendAsync(request, ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
+
+        await EnsureSuccessAsync(response, ct);
+        var body = await response.Content.ReadFromJsonAsync<OpenRouterKeyResponse>(ct);
+        return body?.Data ?? new OpenRouterKeyInfo();
+    }
+
     public async Task<OpenRouterChatResult> ChatAsync(
         string apiKey,
         string model,

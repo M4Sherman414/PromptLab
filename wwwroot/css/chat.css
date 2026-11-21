@@ -1,0 +1,260 @@
+/* Sohbet sayfası (Views/Chat/Session.cshtml) */
+
+.chat-page {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    /* Mesaj alanı ekranı doldurur, yazma kutusu altta kalır. */
+    min-height: calc(100vh - 6rem);
+}
+
+.chat-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    padding: 0.5rem 0.75rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.chat-summary strong {
+    color: #212529;
+}
+
+.chat-messages {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 20rem);
+    min-height: 240px;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    scroll-behavior: smooth;
+}
+
+.chat-row {
+    display: flex;
+}
+
+.chat-row-user {
+    justify-content: flex-end;
+}
+
+.chat-row-assistant {
+    justify-content: flex-start;
+}
+
+.chat-bubble {
+    max-width: 80%;
+    padding: 0.5rem 0.85rem;
+    border-radius: 12px;
+    overflow-wrap: anywhere;
+}
+
+.chat-row-user .chat-bubble {
+    background: #0d6efd;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-row-assistant .chat-bubble {
+    background: #f1f3f5;
+    color: #212529;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-author {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+    opacity: 0.7;
+}
+
+.chat-content {
+    white-space: pre-wrap;
+}
+
+.chat-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    margin-top: 0.4rem;
+    padding-top: 0.3rem;
+    border-top: 1px solid #dee2e6;
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.chat-input-delta {
+    color: #198754;
+    font-weight: 600;
+}
+
+.chat-input {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    margin-top: 0.75rem;
+}
+
+.chat-input textarea {
+    resize: none;
+    max-height: 200px;
+}
+
+/* "yazıyor…" animasyonu */
+.chat-typing {
+    display: flex;
+    align-items: center;
+    height: 1.5rem;
+}
+
+.chat-typing span {
+    width: 6px;
+    height: 6px;
+    margin-right: 3px;
+    border-radius: 50%;
+    background: #adb5bd;
+    animation: chat-blink 1.2s infinite ease-in-out;
+}
+
+.chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes chat-blink {
+    0%, 80%, 100% { opacity: 0.25; }
+    40% { opacity: 1; }
+}
+
+@media (max-width: 576px) {
+    .chat-bubble {
+        max-width: 92%;
+    }
+
+    .chat-messages {
+        max-height: calc(100vh - 24rem);
+        padding: 0.6rem;
+    }
+}
+
+/* Ana sayfa = Yeni sohbet ekranı (Views/Home/Index.cshtml) */
+
+.new-chat {
+    max-width: 760px;
+    margin: 0 auto;
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.new-chat-box {
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 14px;
+    padding: 0.6rem 0.75rem 0.5rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.new-chat-box:focus-within {
+    border-color: #adb5bd;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.new-chat-input {
+    border: none;
+    box-shadow: none !important;
+    resize: none;
+    padding: 0.4rem 0.25rem;
+    font-size: 1.05rem;
+    max-height: 240px;
+}
+
+.new-chat-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.4rem;
+}
+
+.new-chat-model {
+    width: auto;
+    max-width: 60%;
+}
+
+/* Ana sayfa: giriş yapmamış kullanıcı için tanıtım */
+
+.landing {
+    max-width: 1080px;
+    margin: 0 auto;
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.landing-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+}
+
+.landing-lead {
+    max-width: 620px;
+    font-size: 1.15rem;
+    margin-bottom: 1.75rem;
+}
+
+.landing-card {
+    height: 100%;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.landing-card > i {
+    font-size: 1.5rem;
+    color: #0d6efd;
+}
+
+.landing-card h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0.75rem 0 0.4rem;
+}
+
+.landing-card h2 .badge {
+    font-size: 0.65rem;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+.landing-card p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+/* Ana sayfa: API key kurulum kartı */
+
+.setup-card {
+    max-width: 560px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 14px;
+    padding: 2rem;
+}
+
+.setup-icon {
+    font-size: 2.25rem;
+    margin-bottom: 0.5rem;
+}

@@ -3,82 +3,111 @@
 @{
     ViewData["Title"] = Model.Title;
     var hasApiKey = ViewBag.HasApiKey as bool? ?? true;
+    var modelName = Model.ModelCatalog?.DisplayName ?? "Asistan";
+    ViewData["ModelName"] = modelName;
+
+    // Ana sayfadan gelen ilk mesaj: chat.js sayfa açılınca otomatik gönderir.
+    var pendingPrompt = TempData["PendingPrompt"] as string;
+    if (!hasApiKey) { pendingPrompt = null; }
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <div>
-        <h1 class="h3 mb-1">@Model.Title</h1>
-        <div class="small text-muted">
-            <i class="bi bi-cpu me-1"></i>
-            @(Model.ModelCatalog?.DisplayName ?? "Model")
-            <code>@Model.ModelCatalog?.OpenRouterModelId</code>
+@section Styles {
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+}
+
+<div class="chat-page">
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+        <div class="text-truncate">
+            <h1 class="h4 mb-1 text-truncate" id="chat-title">@Model.Title</h1>
+            <div class="small text-muted">
+                <i class="bi bi-cpu me-1"></i>@modelName
+                <code class="ms-1">@Model.ModelCatalog?.OpenRouterModelId</code>
+                @if (Model.ModelCatalog?.IsFree == true)
+                {
+                    <span class="badge bg-success ms-1">Ücretsiz</span>
+                }
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-list-ul me-1"></i>Sohbetlerim
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Yeni sohbet
+            </a>
         </div>
     </div>
-    <div class="d-flex gap-2">
-        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Sohbetlerim</a>
-        <a asp-action="Create" class="btn btn-outline-primary btn-sm">Yeni sohbet</a>
+
+    @* Sohbet toplamları: JavaScript her yeni cevapta yeniden hesaplar. *@
+    <div class="chat-summary small text-muted mb-3" id="chat-summary">
+        <span><i class="bi bi-chat-dots"></i> <strong data-total="turns">0</strong> yanıt</span>
+        <span><i class="bi bi-box-arrow-in-right"></i> <strong data-total="input">0</strong> input tokens</span>
+        <span><i class="bi bi-box-arrow-right"></i> <strong data-total="output">0</strong> output tokens</span>
+        <span><i class="bi bi-stopwatch"></i> avg latency <strong data-total="latency">0</strong> ms</span>
+        <span><i class="bi bi-currency-dollar"></i> cost <strong data-total="cost">0</strong></span>
     </div>
-</div>
 
-@if (!string.IsNullOrWhiteSpace(Model.SystemPrompt))
-{
-    <div class="alert alert-light border small mb-3">
-        <strong>Sistem talimatı:</strong> @Model.SystemPrompt
-    </div>
-}
-
-@if (!hasApiKey)
-{
-    <div class="alert alert-warning">
-        Mesaj gönderebilmek için önce <a asp-controller="ApiKey" asp-action="Index" class="alert-link">API anahtarınızı</a> kaydetmelisiniz.
-    </div>
-}
-
-@if (TempData["Error"] is string error)
-{
-    <div class="alert alert-danger">@error</div>
-}
-
-<div class="d-flex flex-column gap-3 mb-4">
-    @if (Model.Messages.Count == 0)
+    @if (!string.IsNullOrWhiteSpace(Model.SystemPrompt))
     {
-        <div class="text-muted text-center py-4 border rounded bg-white">
+        <div class="alert alert-light border small mb-3">
+            <strong>System prompt:</strong> @Model.SystemPrompt
+        </div>
+    }
+
+    @if (!hasApiKey)
+    {
+        <div class="alert alert-warning">
+            @(ViewBag.KeyStatus is PromptLab.Services.ApiKeyStatus.Invalid
+                ? "Kayıtlı anahtarınız OpenRouter tarafından tanınmıyor (401). Mesaj gönderebilmek için"
+                : "Mesaj gönderebilmek için önce")
+            <a asp-controller="ApiKey" asp-action="Index" asp-route-returnUrl="@Context.Request.Path"
+               class="alert-link">API anahtarınızı</a> kaydetmelisiniz.
+        </div>
+    }
+
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    <div class="alert alert-danger d-none" id="chat-error" role="alert"></div>
+
+    <div class="chat-messages" id="chat-messages">
+        <div class="chat-empty text-muted text-center py-4 @(Model.Messages.Count > 0 ? "d-none" : "")" id="chat-empty">
+            <i class="bi bi-chat-left-text fs-3 d-block mb-2"></i>
             Sohbete başlamak için aşağıdan ilk mesajınızı gönderin.
         </div>
-    }
-    else
-    {
+
         @foreach (var msg in Model.Messages.OrderBy(m => m.CreatedAt).ThenBy(m => m.Id))
         {
-            var isUser = msg.Role == ChatRole.User;
-            <div class="d-flex @(isUser ? "justify-content-end" : "justify-content-start")">
-                <div class="card @(isUser ? "bg-primary text-white" : "bg-white")" style="max-width: 80%;">
-                    <div class="card-body py-2 px-3">
-                        <div class="small fw-semibold mb-1 @(isUser ? "text-white-50" : "text-muted")">
-                            @(isUser ? "Siz" : (Model.ModelCatalog?.DisplayName ?? "Asistan"))
-                        </div>
-                        <div style="white-space: pre-wrap;">@msg.Content</div>
-                        @if (!isUser)
-                        {
-                            <div class="border-top mt-2 pt-1 small text-muted d-flex flex-wrap gap-3">
-                                <span>Giriş: @(msg.InputTokens ?? 0) token</span>
-                                <span>Çıkış: @(msg.OutputTokens ?? 0) token</span>
-                                <span>Süre: @(msg.LatencyMs ?? 0) ms</span>
-                                <span>Maliyet: $@((msg.EstimatedCost ?? 0m).ToString("0.######"))</span>
-                            </div>
-                        }
-                    </div>
+            <partial name="_ChatMessage" model="msg" view-data="ViewData" />
+        }
+
+        @* Cevap beklenirken gösterilen geçici balon. *@
+        <div class="chat-row chat-row-assistant d-none" id="chat-typing">
+            <div class="chat-bubble">
+                <div class="chat-author">@modelName</div>
+                <div class="chat-typing">
+                    <span></span><span></span><span></span>
+                    <small class="text-muted ms-2">yazıyor…</small>
                 </div>
             </div>
-        }
-    }
+        </div>
+    </div>
+
+    <form asp-action="SendMessage" asp-route-id="@Model.Id" method="post" class="chat-input" id="chat-form"
+          data-autosend="@(string.IsNullOrEmpty(pendingPrompt) ? "false" : "true")">
+        <textarea name="prompt" id="chat-prompt" class="form-control" rows="1" maxlength="20000"
+                  placeholder="Mesajınızı yazın… (Enter: gönder, Shift+Enter: yeni satır)"
+                  required disabled="@(!hasApiKey)">@pendingPrompt</textarea>
+        <button type="submit" class="btn btn-primary" id="chat-send" disabled="@(!hasApiKey)">
+            <span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span>
+            <i class="bi bi-send"></i>
+            <span class="d-none d-sm-inline ms-1">Gönder</span>
+        </button>
+    </form>
 </div>
 
-<form asp-action="SendMessage" asp-route-id="@Model.Id" method="post">
-    <div class="input-group">
-        <textarea name="prompt" class="form-control" rows="2" placeholder="Mesajınızı yazın..." required></textarea>
-        <button type="submit" class="btn btn-primary" disabled="@(!hasApiKey)">
-            <i class="bi bi-send me-1"></i> Gönder
-        </button>
-    </div>
-</form>
+@section Scripts {
+    <script src="~/js/chat.js" asp-append-version="true"></script>
+}
