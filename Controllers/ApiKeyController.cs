@@ -22,9 +22,16 @@ public class ApiKeyController : Controller
     private string CurrentUserId => _userManager.GetUserId(User)!;
 
     [HttpGet]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? returnUrl = null)
     {
-        var model = new ApiKeyViewModel();
+        // Sorgu dizesindeki returnUrl ModelState'e girer ve asp-for onu tercih eder;
+        // temizlenmezse doğrulanmamış adres gizli alana yazılır.
+        ModelState.Clear();
+
+        var model = new ApiKeyViewModel
+        {
+            ReturnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null
+        };
         await FillStatusAsync(model);
         return View(model);
     }
@@ -41,6 +48,14 @@ public class ApiKeyController : Controller
 
         await _apiKeys.SaveAsync(CurrentUserId, model.NewKey);
         TempData["Message"] = "API anahtarınız kaydedildi.";
+
+        // Kullanıcı sohbet gibi bir sayfadan yönlendirildiyse oraya geri döner.
+        // Açık yönlendirmeye karşı yalnızca yerel adreslere izin verilir.
+        if (Url.IsLocalUrl(model.ReturnUrl))
+        {
+            return LocalRedirect(model.ReturnUrl!);
+        }
+
         return RedirectToAction(nameof(Index));
     }
 

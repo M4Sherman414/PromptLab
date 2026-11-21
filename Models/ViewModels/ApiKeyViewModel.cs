@@ -8,6 +8,9 @@ public class ApiKeyViewModel
     public string? LastFour { get; set; }
     public DateTime? SavedAt { get; set; }
 
+    // Anahtar kaydedildikten sonra dönülecek yerel adres (ör. sohbet sayfası).
+    public string? ReturnUrl { get; set; }
+
     [Required(ErrorMessage = "API anahtarı zorunludur.")]
     [RegularExpression(@"^sk-or-\S{10,}$", ErrorMessage = "Geçerli bir OpenRouter anahtarı girin. Anahtar sk-or- ile başlar.")]
     [DataType(DataType.Password)]

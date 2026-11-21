@@ -33,6 +33,15 @@
 
 <form asp-action="Save" method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    @if (!string.IsNullOrEmpty(Model.ReturnUrl))
+    {
+        <div class="alert alert-info small">
+            <i class="bi bi-arrow-return-left me-1"></i>
+            Anahtarı kaydettikten sonra kaldığınız sayfaya döneceksiniz.
+        </div>
+    }
 
     <div class="mb-3">
         <label asp-for="NewKey" class="form-label"></label>
