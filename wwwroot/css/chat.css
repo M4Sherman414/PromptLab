@@ -187,3 +187,74 @@
     width: auto;
     max-width: 60%;
 }
+
+/* Ana sayfa: giriş yapmamış kullanıcı için tanıtım */
+
+.landing {
+    max-width: 1080px;
+    margin: 0 auto;
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.landing-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+}
+
+.landing-lead {
+    max-width: 620px;
+    font-size: 1.15rem;
+    margin-bottom: 1.75rem;
+}
+
+.landing-card {
+    height: 100%;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.landing-card > i {
+    font-size: 1.5rem;
+    color: #0d6efd;
+}
+
+.landing-card h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0.75rem 0 0.4rem;
+}
+
+.landing-card h2 .badge {
+    font-size: 0.65rem;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+.landing-card p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+/* Ana sayfa: API key kurulum kartı */
+
+.setup-card {
+    max-width: 560px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 14px;
+    padding: 2rem;
+}
+
+.setup-icon {
+    font-size: 2.25rem;
+    margin-bottom: 0.5rem;
+}
