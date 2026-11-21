@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using PromptLab.Filters;
 using PromptLab.Models;
 using PromptLab.Models.ViewModels;
 using PromptLab.Services;
@@ -29,14 +30,9 @@ public class ChatController : Controller
     }
 
     [HttpGet]
+    [RequireApiKey]
     public async Task<IActionResult> Create(CancellationToken ct)
     {
-        if (!await _chat.HasApiKeyAsync(CurrentUserId))
-        {
-            TempData["Error"] = "Sohbet başlatmadan önce OpenRouter API anahtarınızı kaydetmelisiniz.";
-            return RedirectToAction("Index", "ApiKey");
-        }
-
         var vm = new NewChatViewModel
         {
             ActiveModels = await _chat.GetActiveModelsAsync(ct)
@@ -46,6 +42,7 @@ public class ChatController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireApiKey]
     public async Task<IActionResult> Create(NewChatViewModel vm, CancellationToken ct)
     {
         if (!ModelState.IsValid)
@@ -82,20 +79,43 @@ public class ChatController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireApiKey]
     public async Task<IActionResult> SendMessage(int id, string prompt, CancellationToken ct)
     {
+        // Sohbet sayfasındaki JavaScript isteği AJAX ile gönderir ve cevabı
+        // sayfayı yenilemeden ekler. JavaScript kapalıysa normal form akışı çalışır.
+        var isAjax = RequireApiKeyFilter.IsAjax(Request);
+
         if (string.IsNullOrWhiteSpace(prompt))
         {
-            TempData["Error"] = "Boş mesaj gönderilemez.";
+            const string emptyMessage = "Boş mesaj gönderilemez.";
+            if (isAjax)
+            {
+                return BadRequest(new { error = emptyMessage });
+            }
+
+            TempData["Error"] = emptyMessage;
             return RedirectToAction(nameof(Session), new { id });
         }
 
         try
         {
-            await _chat.SendMessageAsync(id, CurrentUserId, prompt, ct);
+            var turn = await _chat.SendMessageAsync(id, CurrentUserId, prompt, ct);
+
+            if (isAjax)
+            {
+                // Servis oturumu takip ettiği için EF, ChatSession bağlantısını kendisi doldurur.
+                ViewData["ModelName"] = turn.AssistantMessage.ChatSession?.ModelCatalog?.DisplayName;
+                return PartialView("_ChatTurn", turn);
+            }
         }
         catch (MissingApiKeyException ex)
         {
+            if (isAjax)
+            {
+                return Conflict(new { error = ex.Message, redirectUrl = Url.Action("Index", "ApiKey") });
+            }
+
             TempData["Error"] = ex.Message;
             return RedirectToAction("Index", "ApiKey");
         }
@@ -105,7 +125,13 @@ public class ChatController : Controller
         }
         catch (HttpRequestException ex)
         {
-            TempData["Error"] = $"OpenRouter isteği başarısız oldu: {ex.Message}";
+            var errorMessage = $"OpenRouter isteği başarısız oldu: {ex.Message}";
+            if (isAjax)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { error = errorMessage });
+            }
+
+            TempData["Error"] = errorMessage;
         }
 
         return RedirectToAction(nameof(Session), new { id });

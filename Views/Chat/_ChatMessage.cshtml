@@ -1,0 +1,39 @@
+@using System.Globalization
+@using PromptLab.Models
+@model ChatMessage
+@{
+    var isUser = Model.Role == ChatRole.User;
+    var modelName = ViewData["ModelName"] as string ?? "Asistan";
+    var cost = Model.EstimatedCost ?? 0m;
+}
+
+@* Tek bir sohbet mesajı. Hem sayfa ilk açıldığında hem de AJAX cevabında kullanılır. *@
+<div class="chat-row @(isUser ? "chat-row-user" : "chat-row-assistant")">
+    <div class="chat-bubble">
+        <div class="chat-author">@(isUser ? "Siz" : modelName)</div>
+        <div class="chat-content">@Model.Content</div>
+        @if (!isUser)
+        {
+            @* data-* değerlerini chat.js okuyup sohbet toplamlarını hesaplar. *@
+            <div class="chat-metrics"
+                 data-input-tokens="@(Model.InputTokens ?? 0)"
+                 data-output-tokens="@(Model.OutputTokens ?? 0)"
+                 data-latency-ms="@(Model.LatencyMs ?? 0)"
+                 data-cost="@cost.ToString(CultureInfo.InvariantCulture)">
+                <span title="Modele gönderilen token (geçmiş dahil)">
+                    <i class="bi bi-box-arrow-in-right"></i> @(Model.InputTokens ?? 0) giriş
+                    <span class="chat-input-delta"></span>
+                </span>
+                <span title="Modelin ürettiği token">
+                    <i class="bi bi-box-arrow-right"></i> @(Model.OutputTokens ?? 0) çıkış
+                </span>
+                <span title="İsteğin toplam süresi">
+                    <i class="bi bi-stopwatch"></i> @((Model.LatencyMs ?? 0).ToString("N0", CultureInfo.GetCultureInfo("tr-TR"))) ms
+                </span>
+                <span title="Tahmini maliyet (USD)">
+                    <i class="bi bi-currency-dollar"></i>@cost.ToString("0.######", CultureInfo.InvariantCulture)
+                </span>
+            </div>
+        }
+    </div>
+</div>

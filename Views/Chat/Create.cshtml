@@ -25,13 +25,20 @@ else
                     <label asp-for="SelectedModelId" class="form-label"></label>
                     <select asp-for="SelectedModelId" class="form-select">
                         <option value="">-- Model seçin --</option>
-                        @foreach (var m in Model.ActiveModels)
+                        @* Yalnızca aktif modeller listelenir; ücretsizler üstte ayrı grupta. *@
+                        @foreach (var group in Model.ActiveModels.GroupBy(m => m.IsFree).OrderByDescending(g => g.Key))
                         {
-                            <option value="@m.Id">
-                                @m.DisplayName (@m.OpenRouterModelId)@(m.IsFree ? " - Ücretsiz" : "")
-                            </option>
+                            <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller (1M token: giriş / çıkış)")">
+                                @foreach (var m in group)
+                                {
+                                    <option value="@m.Id">
+                                        @m.DisplayName@(m.IsFree ? "" : $" — ${m.InputPricePerMillion:0.##} / ${m.OutputPricePerMillion:0.##}")
+                                    </option>
+                                }
+                            </optgroup>
                         }
                     </select>
+                    <div class="form-text">Testlerde ücretsiz modelleri kullanın; ücretli modeller kendi OpenRouter bakiyenizden düşer.</div>
                     <span asp-validation-for="SelectedModelId" class="text-danger"></span>
                 </div>
 
