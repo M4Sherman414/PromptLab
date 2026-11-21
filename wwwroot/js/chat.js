@@ -3,7 +3,7 @@
 // - Kullanıcının mesajı hemen ekranda görünür, ardından cevap gelene kadar "yazıyor…" gösterilir.
 // - Mesaj fetch ile gönderilir; sunucu model cevabını _ChatMessage partial view'ı olarak HTML döner.
 // - Enter gönderir, Shift+Enter yeni satır açar.
-// - Sohbet toplamlarını (token, süre, maliyet) ve giriş token artışını hesaplar.
+// - Sohbet toplamlarını (tokens, latency, cost) ve input token artışını hesaplar.
 // JavaScript kapalıysa form normal POST ile çalışmaya devam eder.
 (function () {
     "use strict";
@@ -55,7 +55,7 @@
         errorBox.classList.toggle("d-none", !message);
     }
 
-    // Her asistan cevabının altındaki giriş token sayısına bir önceki cevaba göre
+    // Her asistan cevabının altındaki input token sayısına bir önceki cevaba göre
     // artışı yazar (+42 gibi). Geçmiş her istekte yeniden gönderildiği için bu sayı büyür.
     function updateMetrics() {
         const rows = messages.querySelectorAll(".chat-metrics[data-input-tokens]");

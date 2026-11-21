@@ -9,7 +9,7 @@ public class NewChatViewModel
     public int SelectedModelId { get; set; }
 
     [MaxLength(4000)]
-    [Display(Name = "Sistem talimatı (isteğe bağlı)")]
+    [Display(Name = "System prompt (isteğe bağlı)")]
     public string? SystemPrompt { get; set; }
 
     public List<ModelCatalog> ActiveModels { get; set; } = new();

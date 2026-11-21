@@ -36,17 +36,17 @@
 
     @* Sohbet toplamları: JavaScript her yeni cevapta yeniden hesaplar. *@
     <div class="chat-summary small text-muted mb-3" id="chat-summary">
-        <span><i class="bi bi-chat-dots"></i> <strong data-total="turns">0</strong> cevap</span>
-        <span><i class="bi bi-box-arrow-in-right"></i> <strong data-total="input">0</strong> giriş token</span>
-        <span><i class="bi bi-box-arrow-right"></i> <strong data-total="output">0</strong> çıkış token</span>
-        <span><i class="bi bi-stopwatch"></i> ort. <strong data-total="latency">0</strong> ms</span>
-        <span><i class="bi bi-currency-dollar"></i> <strong data-total="cost">0</strong></span>
+        <span><i class="bi bi-chat-dots"></i> <strong data-total="turns">0</strong> yanıt</span>
+        <span><i class="bi bi-box-arrow-in-right"></i> <strong data-total="input">0</strong> input tokens</span>
+        <span><i class="bi bi-box-arrow-right"></i> <strong data-total="output">0</strong> output tokens</span>
+        <span><i class="bi bi-stopwatch"></i> avg latency <strong data-total="latency">0</strong> ms</span>
+        <span><i class="bi bi-currency-dollar"></i> cost <strong data-total="cost">0</strong></span>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.SystemPrompt))
     {
         <div class="alert alert-light border small mb-3">
-            <strong>Sistem talimatı:</strong> @Model.SystemPrompt
+            <strong>System prompt:</strong> @Model.SystemPrompt
         </div>
     }
 

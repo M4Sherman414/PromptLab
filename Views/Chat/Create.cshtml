@@ -28,7 +28,7 @@ else
                         @* Yalnızca aktif modeller listelenir; ücretsizler üstte ayrı grupta. *@
                         @foreach (var group in Model.ActiveModels.GroupBy(m => m.IsFree).OrderByDescending(g => g.Key))
                         {
-                            <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller (1M token: giriş / çıkış)")">
+                            <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller ($ / 1M tokens: input / output)")">
                                 @foreach (var m in group)
                                 {
                                     <option value="@m.Id">

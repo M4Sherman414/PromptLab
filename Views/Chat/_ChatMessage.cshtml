@@ -20,17 +20,17 @@
                  data-output-tokens="@(Model.OutputTokens ?? 0)"
                  data-latency-ms="@(Model.LatencyMs ?? 0)"
                  data-cost="@cost.ToString(CultureInfo.InvariantCulture)">
-                <span title="Modele gönderilen token (geçmiş dahil)">
-                    <i class="bi bi-box-arrow-in-right"></i> @(Model.InputTokens ?? 0) giriş
+                <span title="Input tokens: modele gönderilen token sayısı (sohbet geçmişi dahil)">
+                    <i class="bi bi-box-arrow-in-right"></i> @(Model.InputTokens ?? 0) input
                     <span class="chat-input-delta"></span>
                 </span>
-                <span title="Modelin ürettiği token">
-                    <i class="bi bi-box-arrow-right"></i> @(Model.OutputTokens ?? 0) çıkış
+                <span title="Output tokens: modelin ürettiği token sayısı">
+                    <i class="bi bi-box-arrow-right"></i> @(Model.OutputTokens ?? 0) output
                 </span>
-                <span title="İsteğin toplam süresi">
+                <span title="Latency: isteğin toplam süresi">
                     <i class="bi bi-stopwatch"></i> @((Model.LatencyMs ?? 0).ToString("N0", CultureInfo.GetCultureInfo("tr-TR"))) ms
                 </span>
-                <span title="Tahmini maliyet (USD)">
+                <span title="Cost: tahmini maliyet (USD)">
                     <i class="bi bi-currency-dollar"></i>@cost.ToString("0.######", CultureInfo.InvariantCulture)
                 </span>
             </div>

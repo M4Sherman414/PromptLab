@@ -26,14 +26,14 @@ Bu gösterim, Bilal'in liderlik ettiği 2-4. haftaları kapsar: kimlik doğrulam
 | 6 | Anahtar kaydetme | Bilal | Kaydedince sohbet ekranına geri dönüş, yalnızca son 4 karakter görünür |
 | 7 | pgAdmin'de `UserApiKeys` tablosu | Bilal | Anahtarın şifreli hali (Data Protection) |
 | 8 | Ücretsiz modelle 3-4 mesajlık sohbet | Bilal | Mesaj hemen görünür, ardından "yazıyor…", sonra cevap (sayfa yenilenmez) |
-| 9 | Her cevabın altındaki ölçümler | Bilal | **Giriş token sayısının her mesajda büyümesi (+N)**, süre, maliyet, üstteki toplamlar |
+| 9 | Her cevabın altındaki ölçümler | Bilal | **Input token sayısının her mesajda büyümesi (+N)**, output tokens, latency, cost, üstteki toplamlar |
 | 10 | Sohbet servisinin içi | Burhan | Geçmişin mesaj listesine çevrilip OpenRouter'a gönderilmesi, usage kaydı |
 | 11 | Sohbetlerim listesi ve eski bir sohbete devam | Burhan | Başlığın ilk mesajdan oluşması, son güncellenene göre sıralama |
 | 12 | pgAdmin'de `ChatMessages` tablosu | Burhan | `InputTokens`, `OutputTokens`, `LatencyMs`, `EstimatedCost` alanları |
 
 ## Sorulabilecek sorular ve kısa cevaplar
 
-- **Giriş token sayısı neden her mesajda artıyor?** Modelin hafızası yok. Her istekte sistem talimatı ve bütün geçmiş yeniden gönderiliyor (`ChatService.BuildOpenRouterMessages`), bu yüzden giriş token'ı birikiyor.
+- **Input token sayısı neden her mesajda artıyor?** Modelin hafızası yok. Her istekte system prompt ve bütün geçmiş yeniden gönderiliyor (`ChatService.BuildOpenRouterMessages`), bu yüzden input token birikiyor.
 - **API anahtarı nasıl korunuyor?** `ApiKeyService` anahtarı ASP.NET Core Data Protection ile şifreleyip saklar. Ekranda yalnızca son 4 karakter gösterilir. Anahtar yalnızca istek anında çözülür.
 - **Anahtarı olmayan kullanıcı nasıl yönlendiriliyor?** `Filters/RequireApiKeyAttribute.cs` içindeki action filter, işlemden önce anahtarı kontrol eder. Anahtar yoksa `returnUrl` ile anahtar sayfasına gönderir. AJAX isteğinde yönlendirme yerine 409 ve JSON döner. Bu filtre 5-7. haftalarda karşılaştırma ve turnuva ekranlarında da kullanılacak.
 - **Açık yönlendirme (open redirect) riski?** `returnUrl` yalnızca `Url.IsLocalUrl` doğrularsa kullanılır, `LocalRedirect` ile yönlendirilir. Dış bir adres verilirse yok sayılır.
