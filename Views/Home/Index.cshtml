@@ -1,68 +1,133 @@
-﻿@{
-    ViewData["Title"] = "Home";
+﻿@model PromptLab.Models.ViewModels.NewChatViewModel
+@{
+    ViewData["Title"] = "Yeni sohbet";
+    var canSend = Model.IsSignedIn && Model.HasUsableKey && Model.ActiveModels.Count > 0;
 }
 
-<style>
-    .chat-container {
-        max-width: 720px;
-        margin: 0 auto;
-        min-height: 70vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+@section Styles {
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+}
+
+@* Ana sayfa = Yeni sohbet ekranı (docs/Ekran_Taslaklari/Home&NewChat.jpg) *@
+<div class="new-chat">
+    <h1 class="fw-normal display-6 text-center mb-4">Nereden başlayalım?</h1>
+
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger">@error</div>
     }
 
-    .prompt-input-group {
-        background-color: #ffffff;
-        border: 1px solid #ced4da;
-        border-radius: 12px;
-        padding: 6px 16px;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    @if (!Model.IsSignedIn)
+    {
+        <div class="alert alert-light border text-center">
+            Modellerle sohbet etmek için
+            <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="/" class="alert-link">giriş yapın</a>
+            ya da
+            <a asp-controller="Account" asp-action="Register" class="alert-link">kayıt olun</a>.
+        </div>
+    }
+    else if (Model.KeyStatus == PromptLab.Services.ApiKeyStatus.Invalid)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-x-circle me-1"></i>
+            Kayıtlı OpenRouter anahtarınız OpenRouter tarafından tanınmıyor (401).
+            <a asp-controller="ApiKey" asp-action="Index" asp-route-returnUrl="/" class="alert-link">Anahtarınızı güncelleyin</a>.
+        </div>
+    }
+    else if (Model.KeyStatus == PromptLab.Services.ApiKeyStatus.Missing)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-key me-1"></i>
+            Sohbet başlatmak için önce
+            <a asp-controller="ApiKey" asp-action="Index" asp-route-returnUrl="/" class="alert-link">OpenRouter API anahtarınızı</a>
+            kaydedin.
+        </div>
+    }
+    else if (Model.ActiveModels.Count == 0)
+    {
+        <div class="alert alert-warning">
+            Şu anda aktif model yok. Admin panelinden modeller senkronize edilip aktifleştirilmeli.
+        </div>
     }
 
-    .prompt-input-group:focus-within {
-        border-color: #adb5bd;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
+    <form asp-controller="Chat" asp-action="Create" method="post" id="new-chat-form">
+        <div class="new-chat-box shadow-sm">
+            <textarea asp-for="Prompt" id="new-chat-prompt" class="form-control new-chat-input" rows="1"
+                      placeholder="Bir şey sorun… (Enter: gönder, Shift+Enter: yeni satır)"
+                      required disabled="@(!canSend)"></textarea>
 
-    .prompt-input {
-        border: none;
-        box-shadow: none !important;
-        background: transparent;
-        padding: 10px 0;
-        font-size: 1.05rem;
-    }
+            <div class="collapse" id="system-prompt-box">
+                <textarea asp-for="SystemPrompt" class="form-control form-control-sm mb-2" rows="2"
+                          placeholder="System prompt, ör. You are a concise assistant. Answer in Turkish."
+                          disabled="@(!canSend)"></textarea>
+            </div>
 
-    .btn-send {
-        border: none;
-        background: transparent;
-        color: #495057;
-        padding: 0 4px;
-    }
+            <div class="new-chat-toolbar">
+                @if (Model.ActiveModels.Count > 0)
+                {
+                    @* Yalnızca aktif modeller; ücretsizler üstte ayrı grupta. *@
+                    <select asp-for="SelectedModelId" class="form-select form-select-sm new-chat-model"
+                            aria-label="Model" disabled="@(!canSend)">
+                        @foreach (var group in Model.ActiveModels.GroupBy(m => m.IsFree).OrderByDescending(g => g.Key))
+                        {
+                            <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller ($ / 1M tokens: input / output)")">
+                                @foreach (var m in group)
+                                {
+                                    <option value="@m.Id">
+                                        @m.DisplayName@(m.IsFree ? "" : $" — ${m.InputPricePerMillion:0.##} / ${m.OutputPricePerMillion:0.##}")
+                                    </option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                }
 
-    .btn-send:hover {
-        color: #000000;
-    }
-</style>
+                <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap"
+                        data-bs-toggle="collapse" data-bs-target="#system-prompt-box"
+                        aria-expanded="false" disabled="@(!canSend)">
+                    <i class="bi bi-sliders"></i><span class="d-none d-sm-inline ms-1">System prompt</span>
+                </button>
 
-<div class="chat-container">
-    <!-- Sayfa Başlığı -->
-    <div class="text-center mb-5">
-        <h1 class="fw-normal display-6 text-dark">Where to start?</h1>
-    </div>
-
-    <!-- Central Prompt Input Box -->
-    <form asp-controller="Home" asp-action="Index" method="post" class="w-100">
-        <div class="prompt-input-group d-flex align-items-center shadow-sm">
-            <input type="text" 
-                   name="userPrompt" 
-                   class="form-control prompt-input" 
-                   placeholder="Ask" 
-                   autocomplete="off" 
-                   required />
-            <button type="submit" class="btn btn-send ms-2">
-                <i class="bi bi-send fs-5"></i>
-            </button>
+                <button type="submit" class="btn btn-primary btn-sm ms-auto" disabled="@(!canSend)" aria-label="Gönder">
+                    <i class="bi bi-send"></i>
+                </button>
+            </div>
         </div>
     </form>
+
+    @if (Model.IsSignedIn)
+    {
+        <div class="text-center mt-3 small">
+            <a asp-controller="Chat" asp-action="Index" class="text-muted">
+                <i class="bi bi-chat-left-text me-1"></i>Önceki sohbetlerime git
+            </a>
+        </div>
+    }
 </div>
+
+@section Scripts {
+    <script>
+        // Enter gönderir, Shift+Enter yeni satır; kutu yazdıkça büyür.
+        (function () {
+            const form = document.getElementById("new-chat-form");
+            const prompt = document.getElementById("new-chat-prompt");
+            if (!form || !prompt) return;
+
+            prompt.addEventListener("keydown", function (e) {
+                if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+                    e.preventDefault();
+                    if (prompt.value.trim()) form.requestSubmit();
+                }
+            });
+            prompt.addEventListener("input", function () {
+                prompt.style.height = "auto";
+                prompt.style.height = Math.min(prompt.scrollHeight, 240) + "px";
+            });
+            // Çift gönderimi engelle.
+            form.addEventListener("submit", function () {
+                form.querySelectorAll("button[type=submit]").forEach(b => b.disabled = true);
+            });
+            if (!prompt.disabled) prompt.focus();
+        })();
+    </script>
+}

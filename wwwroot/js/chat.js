@@ -188,7 +188,11 @@
 
     updateMetrics();
     scrollToBottom();
-    if (!prompt.disabled) {
+
+    // Ana sayfadan yeni sohbet açıldıysa ilk mesaj kutuda hazır gelir ve hemen gönderilir.
+    if (form.dataset.autosend === "true" && prompt.value.trim()) {
+        send();
+    } else if (!prompt.disabled) {
         prompt.focus();
     }
 })();

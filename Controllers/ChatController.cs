@@ -12,11 +12,13 @@ namespace PromptLab.Controllers;
 public class ChatController : Controller
 {
     private readonly ChatService _chat;
+    private readonly ApiKeyService _apiKeys;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public ChatController(ChatService chat, UserManager<ApplicationUser> userManager)
+    public ChatController(ChatService chat, ApiKeyService apiKeys, UserManager<ApplicationUser> userManager)
     {
         _chat = chat;
+        _apiKeys = apiKeys;
         _userManager = userManager;
     }
 
@@ -29,16 +31,9 @@ public class ChatController : Controller
         return View(sessions);
     }
 
+    // Yeni sohbet ekranı artık ana sayfa (Home/Index). Eski adres oraya yönlenir.
     [HttpGet]
-    [RequireApiKey]
-    public async Task<IActionResult> Create(CancellationToken ct)
-    {
-        var vm = new NewChatViewModel
-        {
-            ActiveModels = await _chat.GetActiveModelsAsync(ct)
-        };
-        return View(vm);
-    }
+    public IActionResult Create() => RedirectToAction("Index", "Home");
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -47,20 +42,24 @@ public class ChatController : Controller
     {
         if (!ModelState.IsValid)
         {
-            vm.ActiveModels = await _chat.GetActiveModelsAsync(ct);
-            return View(vm);
+            TempData["Error"] = ModelState.Values.SelectMany(v => v.Errors).First().ErrorMessage;
+            return RedirectToAction("Index", "Home");
         }
 
         try
         {
             var session = await _chat.CreateSessionAsync(CurrentUserId, vm.SelectedModelId, vm.SystemPrompt, ct);
+
+            // İlk mesaj sohbet sayfasında JavaScript ile gönderilir: kullanıcı mesajını
+            // hemen görür, ardından "yazıyor…" ve cevap gelir. TempData tek seferlik
+            // olduğu için sayfa yenilenince mesaj ikinci kez gönderilmez.
+            TempData["PendingPrompt"] = vm.Prompt.Trim();
             return RedirectToAction(nameof(Session), new { id = session.Id });
         }
         catch (InvalidOperationException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
-            vm.ActiveModels = await _chat.GetActiveModelsAsync(ct);
-            return View(vm);
+            TempData["Error"] = ex.Message;
+            return RedirectToAction("Index", "Home");
         }
     }
 
@@ -73,7 +72,9 @@ public class ChatController : Controller
             return NotFound();
         }
 
-        ViewBag.HasApiKey = await _chat.HasApiKeyAsync(CurrentUserId);
+        var keyStatus = (await _apiKeys.CheckStoredKeyAsync(CurrentUserId, ct)).Status;
+        ViewBag.HasApiKey = keyStatus is ApiKeyStatus.Valid or ApiKeyStatus.Unknown;
+        ViewBag.KeyStatus = keyStatus;
         return View(session);
     }
 
@@ -123,6 +124,20 @@ public class ChatController : Controller
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            // Anahtar sonradan OpenRouter'da silinmiş/iptal edilmiş olabilir.
+            _apiKeys.ForgetCheck(CurrentUserId);
+            const string invalidKey = "OpenRouter API anahtarınızı tanımadı (401). Lütfen anahtarınızı güncelleyin.";
+            var apiKeyUrl = Url.Action("Index", "ApiKey", new { returnUrl = Url.Action(nameof(Session), new { id }) });
+            if (isAjax)
+            {
+                return Conflict(new { error = invalidKey, redirectUrl = apiKeyUrl });
+            }
+
+            TempData["Error"] = invalidKey;
+            return Redirect(apiKeyUrl!);
         }
         catch (HttpRequestException ex)
         {

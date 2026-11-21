@@ -142,3 +142,48 @@
         padding: 0.6rem;
     }
 }
+
+/* Ana sayfa = Yeni sohbet ekranı (Views/Home/Index.cshtml) */
+
+.new-chat {
+    max-width: 760px;
+    margin: 0 auto;
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.new-chat-box {
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 14px;
+    padding: 0.6rem 0.75rem 0.5rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.new-chat-box:focus-within {
+    border-color: #adb5bd;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.new-chat-input {
+    border: none;
+    box-shadow: none !important;
+    resize: none;
+    padding: 0.4rem 0.25rem;
+    font-size: 1.05rem;
+    max-height: 240px;
+}
+
+.new-chat-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.4rem;
+}
+
+.new-chat-model {
+    width: auto;
+    max-width: 60%;
+}

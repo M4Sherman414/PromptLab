@@ -81,8 +81,8 @@
             }
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item mb-1">
-                    <a asp-controller="Chat" asp-action="Create"
-                       class="nav-link @(currentController == "Chat" && currentAction == "Create" ? "active" : "")">
+                    <a asp-controller="Home" asp-action="Index"
+                       class="nav-link @(currentController == "Home" && currentAction == "Index" ? "active" : "")">
                         <i class="bi bi-plus-lg fs-5"></i>
                         <span>Yeni sohbet</span>
                     </a>
@@ -102,7 +102,7 @@
                 </li>
                 <li class="nav-item mb-1">
                     <a asp-controller="Chat" asp-action="Index"
-                       class="nav-link @(currentController == "Chat" && currentAction != "Create" ? "active" : "")">
+                       class="nav-link @(currentController == "Chat" ? "active" : "")">
                         <i class="bi bi-chat-left-text fs-5"></i>
                         <span>Sohbetlerim</span>
                     </a>

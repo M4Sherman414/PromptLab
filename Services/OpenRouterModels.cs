@@ -82,3 +82,28 @@ public class OpenRouterChatResult
     public int TotalTokens { get; set; }
     public decimal? Cost { get; set; }
 }
+// Anahtar bilgisi: GET /key (kredi harcamaz, anahtarın geçerliliğini kontrol etmek için)
+public class OpenRouterKeyResponse
+{
+    [JsonPropertyName("data")]
+    public OpenRouterKeyInfo? Data { get; set; }
+}
+
+public class OpenRouterKeyInfo
+{
+    [JsonPropertyName("label")]
+    public string? Label { get; set; }
+
+    // null = limitsiz
+    [JsonPropertyName("limit")]
+    public decimal? Limit { get; set; }
+
+    [JsonPropertyName("limit_remaining")]
+    public decimal? LimitRemaining { get; set; }
+
+    [JsonPropertyName("usage")]
+    public decimal? Usage { get; set; }
+
+    [JsonPropertyName("is_free_tier")]
+    public bool IsFreeTier { get; set; }
+}

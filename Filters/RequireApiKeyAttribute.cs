@@ -8,7 +8,8 @@ using PromptLab.Services;
 namespace PromptLab.Filters;
 
 /// <summary>
-/// OpenRouter API anahtarı kayıtlı olmayan kullanıcıyı API anahtarı sayfasına yönlendirir.
+/// OpenRouter API anahtarı kayıtlı olmayan ya da OpenRouter tarafından tanınmayan
+/// kullanıcıyı API anahtarı sayfasına yönlendirir.
 /// Anahtar kaydedildikten sonra kullanıcı geldiği sayfaya geri döner (returnUrl).
 /// AJAX isteklerinde yönlendirme yerine 409 ve JSON döner.
 /// </summary>
@@ -22,6 +23,7 @@ public class RequireApiKeyAttribute : TypeFilterAttribute
 public class RequireApiKeyFilter : IAsyncActionFilter
 {
     public const string Message = "Devam etmeden önce OpenRouter API anahtarınızı kaydetmelisiniz.";
+    public const string InvalidMessage = "Kayıtlı OpenRouter anahtarınız OpenRouter tarafından tanınmıyor (401). Lütfen anahtarınızı güncelleyin.";
 
     private readonly ApiKeyService _apiKeys;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -42,11 +44,22 @@ public class RequireApiKeyFilter : IAsyncActionFilter
         var userId = _userManager.GetUserId(context.HttpContext.User);
 
         // Giriş yapmamış kullanıcıyı [Authorize] zaten giriş sayfasına gönderir.
-        if (userId is null || !string.IsNullOrWhiteSpace(await _apiKeys.GetDecryptedKeyAsync(userId)))
+        if (userId is null)
         {
             await next();
             return;
         }
+
+        // Anahtar yoksa ya da OpenRouter tanımıyorsa (401) durdurulur.
+        // OpenRouter'a ulaşılamadıysa (Unknown) kullanıcı engellenmez.
+        var status = (await _apiKeys.CheckStoredKeyAsync(userId, context.HttpContext.RequestAborted)).Status;
+        if (status is ApiKeyStatus.Valid or ApiKeyStatus.Unknown)
+        {
+            await next();
+            return;
+        }
+
+        var message = status == ApiKeyStatus.Invalid ? InvalidMessage : Message;
 
         var request = context.HttpContext.Request;
         var urlHelper = _urlHelperFactory.GetUrlHelper(context);
@@ -55,7 +68,7 @@ public class RequireApiKeyFilter : IAsyncActionFilter
 
         if (IsAjax(request))
         {
-            context.Result = new JsonResult(new { error = Message, redirectUrl = apiKeyUrl })
+            context.Result = new JsonResult(new { error = message, redirectUrl = apiKeyUrl })
             {
                 StatusCode = StatusCodes.Status409Conflict
             };
@@ -64,7 +77,7 @@ public class RequireApiKeyFilter : IAsyncActionFilter
 
         if (context.Controller is Controller controller)
         {
-            controller.TempData["Error"] = Message;
+            controller.TempData["Error"] = message;
         }
 
         context.Result = new RedirectResult(apiKeyUrl ?? "/ApiKey");
