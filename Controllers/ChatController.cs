@@ -49,10 +49,7 @@ public class ChatController : Controller
         try
         {
             var session = await _chat.CreateSessionAsync(CurrentUserId, vm.SelectedModelId, vm.SystemPrompt, ct);
-
-            // İlk mesaj sohbet sayfasında JavaScript ile gönderilir: kullanıcı mesajını
-            // hemen görür, ardından "yazıyor…" ve cevap gelir. TempData tek seferlik
-            // olduğu için sayfa yenilenince mesaj ikinci kez gönderilmez.
+            
             TempData["PendingPrompt"] = vm.Prompt.Trim();
             return RedirectToAction(nameof(Session), new { id = session.Id });
         }

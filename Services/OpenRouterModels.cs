@@ -19,6 +19,16 @@ public class OpenRouterModel
 
     [JsonPropertyName("pricing")]
     public OpenRouterPricing? Pricing { get; set; }
+
+    [JsonPropertyName("architecture")]
+    public OpenRouterArchitecture? Architecture { get; set; }
+}
+
+public class OpenRouterArchitecture
+{
+    // Modelin ürettiği çıktı türleri: "text", "image", "audio" ...
+    [JsonPropertyName("output_modalities")]
+    public List<string>? OutputModalities { get; set; }
 }
 
 public class OpenRouterPricing
