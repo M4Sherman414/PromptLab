@@ -37,13 +37,36 @@ public class ModelSyncService
                 continue;
             }
 
-            seenIds.Add(remote.Id);
-
             var inputPerMillion = inputPerToken * 1_000_000m;
             var outputPerMillion = outputPerToken * 1_000_000m;
-            var isFree = inputPerToken == 0 && outputPerToken == 0;
 
-            if (existing.TryGetValue(remote.Id, out var model))
+            // OpenRouter'ın ücretsiz modellerinin id'si ":free" ile biter. Yalnızca fiyata bakmak
+            // yetmez: bazı modeller (ör. Lyria) token yerine başka birimle ücretlendirilir ve
+            // token fiyatı 0 görünür.
+            var isFree = remote.Id.EndsWith(":free", StringComparison.Ordinal)
+                && inputPerToken == 0 && outputPerToken == 0;
+
+            // Sohbet ekranı yalnızca metin cevap gösterebilir. Resim/ses üreten modeller eklenmez;
+            // daha önce eklenmişse seenIds'e girmediği için aşağıda pasifleştirilir.
+            var outputs = remote.Architecture?.OutputModalities;
+            var isTextOnly = outputs is null || outputs.Count == 0 || outputs.All(o => o == "text");
+
+            existing.TryGetValue(remote.Id, out var model);
+
+            if (!isTextOnly)
+            {
+                if (model is not null)
+                {
+                    model.IsFree = isFree;
+                    model.LastSyncedAt = now;
+                }
+                skipped++;
+                continue;
+            }
+
+            seenIds.Add(remote.Id);
+
+            if (model is not null)
             {
                 model.InputPricePerMillion = inputPerMillion;
                 model.OutputPricePerMillion = outputPerMillion;
