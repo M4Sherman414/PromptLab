@@ -1,68 +1,197 @@
-﻿@{
-    ViewData["Title"] = "Home";
+﻿@using PromptLab.Services
+@model PromptLab.Models.ViewModels.NewChatViewModel
+@{
+    ViewData["Title"] = Model.IsSignedIn ? "Yeni sohbet" : "PROMPT Lab";
+    var needsKey = Model.IsSignedIn && !Model.HasUsableKey;
 }
 
-<style>
-    .chat-container {
-        max-width: 720px;
-        margin: 0 auto;
-        min-height: 70vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
+@section Styles {
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+}
 
-    .prompt-input-group {
-        background-color: #ffffff;
-        border: 1px solid #ced4da;
-        border-radius: 12px;
-        padding: 6px 16px;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
+@*
+    Ana sayfa üç durumda farklı görünür:
+    1) Giriş yapılmamış  → ürün tanıtımı + kayıt/giriş
+    2) Anahtar yok/geçersiz → tek adımlık kurulum kartı
+    3) Hazır             → Yeni sohbet kutusu (docs/Ekran_Taslaklari/Home&NewChat.jpg)
+*@
 
-    .prompt-input-group:focus-within {
-        border-color: #adb5bd;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
+@if (!Model.IsSignedIn)
+{
+    <div class="landing">
+        <div class="text-center mb-5">
+            <span class="badge rounded-pill text-bg-light border mb-3 px-3 py-2">
+                <i class="bi bi-lightning-charge me-1"></i>OpenRouter üzerinden yüzlerce LLM
+            </span>
+            <h1 class="landing-title">Hangi model gerçekten daha iyi?</h1>
+            <p class="landing-lead text-muted mx-auto">
+                PROMPT Lab'de LLM'lerle sohbet et, aynı prompt'u iki modele birden gönder,
+                cevapları kör oyla ve kendi leaderboard'unu oluştur.
+            </p>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg px-4">Ücretsiz başla</a>
+                <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="/" class="btn btn-outline-secondary btn-lg px-4">Giriş yap</a>
+            </div>
+            <p class="small text-muted mt-3 mb-0">
+                <i class="bi bi-shield-lock me-1"></i>Kendi OpenRouter API key'inle çalışır, key şifreli saklanır.
+            </p>
+        </div>
 
-    .prompt-input {
-        border: none;
-        box-shadow: none !important;
-        background: transparent;
-        padding: 10px 0;
-        font-size: 1.05rem;
-    }
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-card">
+                    <i class="bi bi-chat-dots"></i>
+                    <h2>Sohbet</h2>
+                    <p>Seçtiğin modelle çok turlu sohbet. Her cevapta input/output tokens, latency ve cost.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-card">
+                    <i class="bi bi-layout-split"></i>
+                    <h2>Karşılaştırma <span class="badge text-bg-light border">yakında</span></h2>
+                    <p>Aynı prompt iki modele gider, cevaplar yan yana akar.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-card">
+                    <i class="bi bi-incognito"></i>
+                    <h2>Blind mode &amp; Elo <span class="badge text-bg-light border">yakında</span></h2>
+                    <p>Model adları oydan sonra açılır. Kör oylar Elo puanını günceller.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-card">
+                    <i class="bi bi-trophy"></i>
+                    <h2>Turnuva <span class="badge text-bg-light border">yakında</span></h2>
+                    <p>King of the hill ya da 4/8/16 modellik bracket ile şampiyonu bul.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else if (needsKey)
+{
+    var invalid = Model.KeyStatus == ApiKeyStatus.Invalid;
+    <div class="new-chat">
+        <div class="setup-card mx-auto text-center">
+            <div class="setup-icon @(invalid ? "text-danger" : "text-primary")">
+                <i class="bi @(invalid ? "bi-key-fill" : "bi-key")"></i>
+            </div>
+            @if (invalid)
+            {
+                <h1 class="h4">API key'in OpenRouter tarafından tanınmıyor</h1>
+                <p class="text-muted">
+                    Kayıtlı key silinmiş ya da hatalı kopyalanmış olabilir (401).
+                    Yeni bir key girdiğinde buraya geri döneceksin.
+                </p>
+            }
+            else
+            {
+                <h1 class="h4">Bir adım kaldı: OpenRouter API key'ini ekle</h1>
+                <p class="text-muted">
+                    Modellere senin key'inle istek atılır. Key şifreli saklanır ve bir daha ekranda gösterilmez.
+                    Ücretsiz modeller için kredi gerekmez.
+                </p>
+            }
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                <a asp-controller="ApiKey" asp-action="Index" asp-route-returnUrl="/" class="btn btn-primary">
+                    @(invalid ? "Key'i güncelle" : "API key ekle")
+                </a>
+                <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">
+                    OpenRouter'dan key al <i class="bi bi-box-arrow-up-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="new-chat">
+        <h1 class="fw-normal display-6 text-center mb-4">Nereden başlayalım?</h1>
 
-    .btn-send {
-        border: none;
-        background: transparent;
-        color: #495057;
-        padding: 0 4px;
-    }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert alert-danger">@error</div>
+        }
 
-    .btn-send:hover {
-        color: #000000;
-    }
-</style>
+        @if (Model.ActiveModels.Count == 0)
+        {
+            <div class="alert alert-warning text-center">
+                Şu anda aktif model yok. Admin panelinden modeller senkronize edilip aktifleştirilmeli.
+            </div>
+        }
+        else
+        {
+            <form asp-controller="Chat" asp-action="Create" method="post" id="new-chat-form">
+                <div class="new-chat-box shadow-sm">
+                    <textarea asp-for="Prompt" id="new-chat-prompt" class="form-control new-chat-input" rows="1"
+                              placeholder="Bir şey sor… (Enter: gönder, Shift+Enter: yeni satır)" required></textarea>
 
-<div class="chat-container">
-    <!-- Sayfa Başlığı -->
-    <div class="text-center mb-5">
-        <h1 class="fw-normal display-6 text-dark">Where to start?</h1>
+                    <div class="collapse" id="system-prompt-box">
+                        <textarea asp-for="SystemPrompt" class="form-control form-control-sm mb-2" rows="2"
+                                  placeholder="System prompt, ör. You are a concise assistant. Answer in Turkish."></textarea>
+                    </div>
+
+                    <div class="new-chat-toolbar">
+                        @* Yalnızca aktif modeller; ücretsizler üstte ayrı grupta. *@
+                        <select asp-for="SelectedModelId" class="form-select form-select-sm new-chat-model" aria-label="Model">
+                            @foreach (var group in Model.ActiveModels.GroupBy(m => m.IsFree).OrderByDescending(g => g.Key))
+                            {
+                                <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller ($ / 1M tokens: input / output)")">
+                                    @foreach (var m in group)
+                                    {
+                                        <option value="@m.Id">
+                                            @m.DisplayName@(m.IsFree ? "" : $" — ${m.InputPricePerMillion:0.##} / ${m.OutputPricePerMillion:0.##}")
+                                        </option>
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+
+                        <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap"
+                                data-bs-toggle="collapse" data-bs-target="#system-prompt-box" aria-expanded="false">
+                            <i class="bi bi-sliders"></i><span class="d-none d-sm-inline ms-1">System prompt</span>
+                        </button>
+
+                        <button type="submit" class="btn btn-primary btn-sm ms-auto" aria-label="Gönder">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        }
+
+        <div class="text-center mt-3 small">
+            <a asp-controller="Chat" asp-action="Index" class="text-muted">
+                <i class="bi bi-chat-left-text me-1"></i>Önceki sohbetlerime git
+            </a>
+        </div>
     </div>
 
-    <!-- Central Prompt Input Box -->
-    <form asp-controller="Home" asp-action="Index" method="post" class="w-100">
-        <div class="prompt-input-group d-flex align-items-center shadow-sm">
-            <input type="text" 
-                   name="userPrompt" 
-                   class="form-control prompt-input" 
-                   placeholder="Ask" 
-                   autocomplete="off" 
-                   required />
-            <button type="submit" class="btn btn-send ms-2">
-                <i class="bi bi-send fs-5"></i>
-            </button>
-        </div>
-    </form>
-</div>
+    @section Scripts {
+        <script>
+            // Enter gönderir, Shift+Enter yeni satır; kutu yazdıkça büyür.
+            (function () {
+                const form = document.getElementById("new-chat-form");
+                const prompt = document.getElementById("new-chat-prompt");
+                if (!form || !prompt) return;
+
+                prompt.addEventListener("keydown", function (e) {
+                    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+                        e.preventDefault();
+                        if (prompt.value.trim()) form.requestSubmit();
+                    }
+                });
+                prompt.addEventListener("input", function () {
+                    prompt.style.height = "auto";
+                    prompt.style.height = Math.min(prompt.scrollHeight, 240) + "px";
+                });
+                // Çift gönderimi engelle.
+                form.addEventListener("submit", function () {
+                    form.querySelectorAll("button[type=submit]").forEach(b => b.disabled = true);
+                });
+                prompt.focus();
+            })();
+        </script>
+    }
+}

@@ -55,6 +55,7 @@
             min-height: 100vh;
         }
     </style>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
 
@@ -74,11 +75,16 @@
             </div>
 
             <!-- Navigasyon Linkleri -->
+            @{
+                var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+                var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+            }
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item mb-1">
-                    <a asp-controller="Home" asp-action="Index" class="nav-link active">
+                    <a asp-controller="Home" asp-action="Index"
+                       class="nav-link @(currentController == "Home" && currentAction == "Index" ? "active" : "")">
                         <i class="bi bi-plus-lg fs-5"></i>
-                        <span>New chat</span>
+                        <span>Yeni sohbet</span>
                     </a>
                 </li>
                 <hr class="my-2 text-secondary opacity-25">
@@ -95,9 +101,10 @@
                     </a>
                 </li>
                 <li class="nav-item mb-1">
-                    <a class="nav-link disabled" aria-disabled="true">
+                    <a asp-controller="Chat" asp-action="Index"
+                       class="nav-link @(currentController == "Chat" ? "active" : "")">
                         <i class="bi bi-chat-left-text fs-5"></i>
-                        <span>Chats</span>
+                        <span>Sohbetlerim</span>
                     </a>
                 </li>
                 @if (SignInManager.IsSignedIn(User))
@@ -119,7 +126,7 @@
                         </a>
                     </li>
                     <li class="nav-item mb-1">
-                        <a class="nav-link" href="/swagger">
+                        <a class="nav-link" href="/swagger" target="_blank" rel="noopener noreferrer">
                             <i class="bi bi-file-earmark-code fs-5"></i>
                             <span>API (Swagger)</span>
                         </a>

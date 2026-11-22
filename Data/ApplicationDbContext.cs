@@ -17,6 +17,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ComparisonResult> ComparisonResults => Set<ComparisonResult>();
     public DbSet<Vote> Votes => Set<Vote>();
     public DbSet<ModelStat> ModelStats => Set<ModelStat>();
+    public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -67,5 +69,32 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithOne()
             .HasForeignKey<ModelStat>(s => s.ModelId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Bir kullanıcının birden çok sohbet oturumu olur.
+        builder.Entity<ChatSession>()
+            .HasOne(s => s.User)
+            .WithMany()
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Sohbette kullanılmış bir model silinemez.
+        builder.Entity<ChatSession>()
+            .HasOne(s => s.ModelCatalog)
+            .WithMany()
+            .HasForeignKey(s => s.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<ChatSession>()
+            .HasIndex(s => new { s.UserId, s.UpdatedAt });
+
+        // Bir sohbet silinince mesajları da silinir.
+        builder.Entity<ChatMessage>()
+            .HasOne(m => m.ChatSession)
+            .WithMany(s => s.Messages)
+            .HasForeignKey(m => m.ChatSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ChatMessage>()
+            .HasIndex(m => new { m.ChatSessionId, m.CreatedAt });
     }
 }

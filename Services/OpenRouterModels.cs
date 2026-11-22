@@ -19,6 +19,16 @@ public class OpenRouterModel
 
     [JsonPropertyName("pricing")]
     public OpenRouterPricing? Pricing { get; set; }
+
+    [JsonPropertyName("architecture")]
+    public OpenRouterArchitecture? Architecture { get; set; }
+}
+
+public class OpenRouterArchitecture
+{
+    // Modelin ürettiği çıktı türleri: "text", "image", "audio" ...
+    [JsonPropertyName("output_modalities")]
+    public List<string>? OutputModalities { get; set; }
 }
 
 public class OpenRouterPricing
@@ -81,4 +91,29 @@ public class OpenRouterChatResult
     public int CompletionTokens { get; set; }
     public int TotalTokens { get; set; }
     public decimal? Cost { get; set; }
+}
+// Anahtar bilgisi: GET /key (kredi harcamaz, anahtarın geçerliliğini kontrol etmek için)
+public class OpenRouterKeyResponse
+{
+    [JsonPropertyName("data")]
+    public OpenRouterKeyInfo? Data { get; set; }
+}
+
+public class OpenRouterKeyInfo
+{
+    [JsonPropertyName("label")]
+    public string? Label { get; set; }
+
+    // null = limitsiz
+    [JsonPropertyName("limit")]
+    public decimal? Limit { get; set; }
+
+    [JsonPropertyName("limit_remaining")]
+    public decimal? LimitRemaining { get; set; }
+
+    [JsonPropertyName("usage")]
+    public decimal? Usage { get; set; }
+
+    [JsonPropertyName("is_free_tier")]
+    public bool IsFreeTier { get; set; }
 }

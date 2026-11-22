@@ -44,7 +44,9 @@ builder.Services.AddScoped<ModelSyncService>();
 builder.Services.AddDataProtection()
     .SetApplicationName("PromptLab");
 
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ApiKeyService>();
+builder.Services.AddScoped<ChatService>();
 
 var app = builder.Build();
 
