@@ -87,6 +87,13 @@
                         <span>Yeni sohbet</span>
                     </a>
                 </li>
+                <li class="nav-item mb-1">
+                    <a asp-controller="Comparison" asp-action="Index"
+                       class="nav-link @(currentController == "Comparison" ? "active" : "")">
+                        <i class="bi bi-layout-split fs-5"></i>
+                        <span>Karşılaştırma</span>
+                    </a>
+                </li>
                 <hr class="my-2 text-secondary opacity-25">
                 <li class="nav-item mb-1">
                     <a class="nav-link disabled" aria-disabled="true">

@@ -1,0 +1,38 @@
+@using PromptLab.Models
+@model Comparison
+@{
+    ViewData["Title"] = "Karşılaştırma Sonucu";
+    var resultA = Model.ComparisonResults.FirstOrDefault(r => r.Slot == ResultSlot.A);
+    var resultB = Model.ComparisonResults.FirstOrDefault(r => r.Slot == ResultSlot.B);
+}
+
+<div class="mx-auto" style="max-width: 1100px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Karşılaştırma #@Model.Id</h1>
+        <a asp-action="Index" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Yeni karşılaştırma
+        </a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="small text-muted mb-1">Prompt</div>
+            <div style="white-space: pre-wrap;">@Model.UserPrompt</div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Model A: @(resultA?.ModelCatalog?.DisplayName ?? "-")</div>
+                <div class="card-body" style="white-space: pre-wrap;">@(resultA?.Error ?? resultA?.Output)</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Model B: @(resultB?.ModelCatalog?.DisplayName ?? "-")</div>
+                <div class="card-body" style="white-space: pre-wrap;">@(resultB?.Error ?? resultB?.Output)</div>
+            </div>
+        </div>
+    </div>
+</div>
