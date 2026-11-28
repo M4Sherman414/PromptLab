@@ -1,0 +1,92 @@
+@using System.Globalization
+@using PromptLab.Models
+@model ComparisonResult
+@{
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+    var isPending = Model.Output is null && string.IsNullOrWhiteSpace(Model.Error);
+    var hasError = !string.IsNullOrWhiteSpace(Model.Error);
+    var slotLabel = Model.Slot == ResultSlot.A ? "Model A" : "Model B";
+    var badgeClass = Model.Slot == ResultSlot.A ? "text-bg-primary" : "text-bg-dark";
+    var modelName = Model.ModelCatalog?.DisplayName ?? "Bilinmeyen model";
+}
+
+<div class="comparison-card shadow-sm" data-slot="@Model.Slot" @(isPending ? "data-pending=\"true\"" : "")>
+    <div class="comparison-card-header">
+        <div class="d-flex align-items-center gap-2 text-truncate flex-wrap">
+            <span class="badge @badgeClass">@slotLabel</span>
+            <span class="fw-semibold text-truncate">@modelName</span>
+            @if (Model.ModelCatalog?.IsFree == true)
+            {
+                <span class="badge bg-success">Ücretsiz</span>
+            }
+        </div>
+
+        @if (isPending)
+        {
+            <span class="spinner-border spinner-border-sm text-secondary" aria-hidden="true"></span>
+        }
+        else if (hasError)
+        {
+            <span class="badge text-bg-danger">Hata</span>
+        }
+    </div>
+
+    <div class="comparison-card-body @(isPending ? "d-flex align-items-center" : "")">
+        @if (isPending)
+        {
+            <div class="chat-typing">
+                <span></span><span></span><span></span>
+                <small class="text-muted ms-2">yanıt bekleniyor…</small>
+            </div>
+        }
+        else if (hasError)
+        {
+            <div class="alert alert-danger mb-0" role="alert">
+                <i class="bi bi-exclamation-triangle me-1"></i>@Model.Error
+            </div>
+        }
+        else if (string.IsNullOrWhiteSpace(Model.Output))
+        {
+            <div class="text-muted fst-italic">Model boş bir yanıt döndürdü.</div>
+        }
+        else
+        {
+            <div class="comparison-output">@Model.Output</div>
+        }
+    </div>
+
+    <div class="comparison-card-footer">
+        <div class="chat-metrics">
+            @if (isPending)
+            {
+                <span><i class="bi bi-hourglass-split"></i> ölçüm hazırlanıyor</span>
+            }
+            else
+            {
+                <span title="Input tokens">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    @(hasError ? "—" : (Model.InputTokens ?? 0).ToString("N0", tr)) input
+                </span>
+                <span title="Output tokens">
+                    <i class="bi bi-box-arrow-right"></i>
+                    @(hasError ? "—" : (Model.OutputTokens ?? 0).ToString("N0", tr)) output
+                </span>
+                <span title="Latency">
+                    <i class="bi bi-stopwatch"></i>
+                    @(Model.LatencyMs.HasValue ? $"{Model.LatencyMs.Value.ToString("N0", tr)} ms" : "—")
+                </span>
+                <span title="Time to first token (streaming eklendiğinde ölçülür)">
+                    <i class="bi bi-lightning-charge"></i>
+                    TTFT @(Model.TimeToFirstTokenMs.HasValue ? $"{Model.TimeToFirstTokenMs.Value.ToString("N0", tr)} ms" : "—")
+                </span>
+                <span title="Saniyedeki çıkış token sayısı">
+                    <i class="bi bi-speedometer2"></i>
+                    @(hasError || !Model.TokensPerSecond.HasValue ? "—" : $"{Model.TokensPerSecond.Value.ToString("0.##", CultureInfo.InvariantCulture)} tok/s")
+                </span>
+                <span title="Tahmini maliyet (USD)">
+                    <i class="bi bi-currency-dollar"></i>@(hasError ? "—" : (Model.EstimatedCost ?? 0m).ToString("0.######", CultureInfo.InvariantCulture))
+                </span>
+            }
+        </div>
+    </div>
+</div>

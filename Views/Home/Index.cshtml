@@ -1,19 +1,25 @@
-﻿@using PromptLab.Services
+@using PromptLab.Services
 @model PromptLab.Models.ViewModels.NewChatViewModel
 @{
-    ViewData["Title"] = Model.IsSignedIn ? "Yeni sohbet" : "PROMPT Lab";
+    var isCompare = string.Equals(Model.Mode, "compare", StringComparison.OrdinalIgnoreCase);
+    ViewData["Title"] = Model.IsSignedIn ? (isCompare ? "Karşılaştırma" : "Yeni sohbet") : "PROMPT Lab";
     var needsKey = Model.IsSignedIn && !Model.HasUsableKey;
+    var modelGroups = Model.ActiveModels
+        .GroupBy(m => m.IsFree)
+        .OrderByDescending(g => g.Key)
+        .ToList();
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/comparison.css" asp-append-version="true" />
 }
 
 @*
     Ana sayfa üç durumda farklı görünür:
     1) Giriş yapılmamış  → ürün tanıtımı + kayıt/giriş
     2) Anahtar yok/geçersiz → tek adımlık kurulum kartı
-    3) Hazır             → Yeni sohbet kutusu (docs/Ekran_Taslaklari/Home&NewChat.jpg)
+    3) Hazır             → Yeni sohbet / Karşılaştırma kutusu
 *@
 
 @if (!Model.IsSignedIn)
@@ -48,8 +54,8 @@
             <div class="col-md-6 col-xl-3">
                 <div class="landing-card">
                     <i class="bi bi-layout-split"></i>
-                    <h2>Karşılaştırma <span class="badge text-bg-light border">yakında</span></h2>
-                    <p>Aynı prompt iki modele gider, cevaplar yan yana akar.</p>
+                    <h2>Karşılaştırma</h2>
+                    <p>Aynı prompt iki modele gider, cevaplar yan yana gösterilir.</p>
                 </div>
             </div>
             <div class="col-md-6 col-xl-3">
@@ -106,13 +112,27 @@ else if (needsKey)
 }
 else
 {
-    <div class="new-chat">
-        <h1 class="fw-normal display-6 text-center mb-4">Nereden başlayalım?</h1>
+    <div class="new-chat" id="new-chat-root">
+        <h1 class="fw-normal display-6 text-center mb-3" id="new-chat-heading">
+            @(isCompare ? "İki modeli yarıştır" : "Nereden başlayalım?")
+        </h1>
+
+        <div class="d-flex justify-content-center mb-3">
+            <div class="mode-switch" role="group" aria-label="Çalışma modu">
+                <button type="button" class="mode-switch-btn @(isCompare ? "" : "active")" data-mode="chat">
+                    <i class="bi bi-chat-dots me-1"></i>Sohbet
+                </button>
+                <button type="button" class="mode-switch-btn @(isCompare ? "active" : "")" data-mode="compare">
+                    <i class="bi bi-layout-split me-1"></i>Karşılaştırma
+                </button>
+            </div>
+        </div>
 
         @if (TempData["Error"] is string error)
         {
             <div class="alert alert-danger">@error</div>
         }
+        <div class="alert alert-danger d-none" id="home-error" role="alert"></div>
 
         @if (Model.ActiveModels.Count == 0)
         {
@@ -122,76 +142,120 @@ else
         }
         else
         {
-            <form asp-controller="Chat" asp-action="Create" method="post" id="new-chat-form">
+            <form asp-controller="Chat" asp-action="Create" method="post" id="new-chat-form"
+                  data-chat-action="@Url.Action("Create", "Chat")"
+                  data-compare-action="@Url.Action("Create", "Comparison")"
+                  data-compare-start="@Url.Action("Start", "Comparison")"
+                  data-compare-slot="@Url.Action("RunSlot", "Comparison")">
+                <input type="hidden" id="mode-input" value="@(isCompare ? "compare" : "chat")" />
+
                 <div class="new-chat-box shadow-sm">
                     <textarea asp-for="Prompt" id="new-chat-prompt" class="form-control new-chat-input" rows="1"
                               placeholder="Bir şey sor… (Enter: gönder, Shift+Enter: yeni satır)" required></textarea>
 
                     <div class="collapse" id="system-prompt-box">
-                        <textarea asp-for="SystemPrompt" class="form-control form-control-sm mb-2" rows="2"
+                        <textarea asp-for="SystemPrompt" id="SystemPrompt" class="form-control form-control-sm mb-2" rows="2"
                                   placeholder="System prompt, ör. You are a concise assistant. Answer in Turkish."></textarea>
+
+                        <div class="row g-2 mb-2 @(isCompare ? "" : "d-none")" id="compare-params-row">
+                            <div class="col-sm-6">
+                                <input asp-for="Temperature" id="Temperature" type="number" step="0.1" min="0" max="2"
+                                       class="form-control form-control-sm"
+                                       placeholder="Temperature (0.0 – 2.0, isteğe bağlı)" />
+                            </div>
+                            <div class="col-sm-6">
+                                <input asp-for="MaxTokens" id="MaxTokens" type="number" step="1" min="1" max="128000"
+                                       class="form-control form-control-sm"
+                                       placeholder="Maksimum token (ör. 1024, isteğe bağlı)" />
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="new-chat-toolbar">
-                        @* Yalnızca aktif modeller; ücretsizler üstte ayrı grupta. *@
-                        <select asp-for="SelectedModelId" class="form-select form-select-sm new-chat-model" aria-label="Model">
-                            @foreach (var group in Model.ActiveModels.GroupBy(m => m.IsFree).OrderByDescending(g => g.Key))
-                            {
-                                <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller ($ / 1M tokens: input / output)")">
-                                    @foreach (var m in group)
-                                    {
-                                        <option value="@m.Id">
-                                            @m.DisplayName@(m.IsFree ? "" : $" — ${m.InputPricePerMillion:0.##} / ${m.OutputPricePerMillion:0.##}")
-                                        </option>
-                                    }
-                                </optgroup>
-                            }
-                        </select>
+                    <div class="new-chat-toolbar flex-wrap">
+                        @* Sohbet modu: tek model seçimi *@
+                        <div id="chat-model-picker" class="@(isCompare ? "d-none" : "")" style="max-width: 60%;">
+                            <select asp-for="SelectedModelId" class="form-select form-select-sm" aria-label="Model">
+                                @foreach (var group in modelGroups)
+                                {
+                                    <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller ($ / 1M tokens: input / output)")">
+                                        @foreach (var m in group)
+                                        {
+                                            <option value="@m.Id">
+                                                @m.DisplayName@(m.IsFree ? "" : $" — ${m.InputPricePerMillion:0.##} / ${m.OutputPricePerMillion:0.##}")
+                                            </option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
+
+                        @* Karşılaştırma modu: Model A ve Model B seçimi *@
+                        <div id="compare-model-pickers" class="compare-model-pickers @(isCompare ? "" : "d-none")">
+                            <select asp-for="ModelAId" id="ModelAId" class="form-select form-select-sm compare-model-select" aria-label="Model A">
+                                @foreach (var group in modelGroups)
+                                {
+                                    <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller ($ / 1M tokens: input / output)")">
+                                        @foreach (var m in group)
+                                        {
+                                            <option value="@m.Id">
+                                                @m.DisplayName@(m.IsFree ? "" : $" — ${m.InputPricePerMillion:0.##} / ${m.OutputPricePerMillion:0.##}")
+                                            </option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                            <span class="compare-vs">vs</span>
+                            <select asp-for="ModelBId" id="ModelBId" class="form-select form-select-sm compare-model-select" aria-label="Model B">
+                                @foreach (var group in modelGroups)
+                                {
+                                    <optgroup label="@(group.Key ? "Ücretsiz modeller" : "Ücretli modeller ($ / 1M tokens: input / output)")">
+                                        @foreach (var m in group)
+                                        {
+                                            <option value="@m.Id">
+                                                @m.DisplayName@(m.IsFree ? "" : $" — ${m.InputPricePerMillion:0.##} / ${m.OutputPricePerMillion:0.##}")
+                                            </option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
 
                         <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap"
                                 data-bs-toggle="collapse" data-bs-target="#system-prompt-box" aria-expanded="false">
-                            <i class="bi bi-sliders"></i><span class="d-none d-sm-inline ms-1">System prompt</span>
+                            <i class="bi bi-sliders"></i><span class="d-none d-sm-inline ms-1" id="params-toggle-label">@(isCompare ? "Parametreler" : "System prompt")</span>
                         </button>
 
-                        <button type="submit" class="btn btn-primary btn-sm ms-auto" aria-label="Gönder">
+                        <button type="submit" class="btn btn-primary btn-sm ms-auto" id="new-chat-submit" aria-label="Gönder">
+                            <span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span>
                             <i class="bi bi-send"></i>
                         </button>
                     </div>
                 </div>
             </form>
+
+            @* Karşılaştırma gönderildiği anda sayfa yenilenmeden burada açılır *@
+            <div class="battle-stage d-none" id="battle-stage">
+                <div class="battle-prompt-card">
+                    <div class="small text-muted fw-semibold mb-1">Siz</div>
+                    <div class="battle-prompt-text" id="battle-prompt-text"></div>
+                    <div class="small text-muted mt-2 d-none" id="battle-system-note"></div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6" id="slot-container-A"></div>
+                    <div class="col-md-6" id="slot-container-B"></div>
+                </div>
+            </div>
         }
 
         <div class="text-center mt-3 small">
             <a asp-controller="Chat" asp-action="Index" class="text-muted">
-                <i class="bi bi-chat-left-text me-1"></i>Önceki sohbetlerime git
+                <i class="bi bi-chat-left-text me-1"></i>Geçmiş sohbet ve karşılaştırmalarım
             </a>
         </div>
     </div>
 
     @section Scripts {
-        <script>
-            // Enter gönderir, Shift+Enter yeni satır; kutu yazdıkça büyür.
-            (function () {
-                const form = document.getElementById("new-chat-form");
-                const prompt = document.getElementById("new-chat-prompt");
-                if (!form || !prompt) return;
-
-                prompt.addEventListener("keydown", function (e) {
-                    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
-                        e.preventDefault();
-                        if (prompt.value.trim()) form.requestSubmit();
-                    }
-                });
-                prompt.addEventListener("input", function () {
-                    prompt.style.height = "auto";
-                    prompt.style.height = Math.min(prompt.scrollHeight, 240) + "px";
-                });
-                // Çift gönderimi engelle.
-                form.addEventListener("submit", function () {
-                    form.querySelectorAll("button[type=submit]").forEach(b => b.disabled = true);
-                });
-                prompt.focus();
-            })();
-        </script>
+        <script src="~/js/comparison.js" asp-append-version="true"></script>
     }
 }

@@ -20,11 +20,15 @@ public class HomeController : Controller
         _userManager = userManager;
     }
 
-    // Ana sayfa = "Yeni sohbet" ekranı (docs/Ekran_Taslaklari/Home&NewChat.jpg).
-    // Kullanıcı modeli seçer, ilk mesajını yazar; form Chat/Create'e gider.
-    public async Task<IActionResult> Index(CancellationToken ct)
+    // Ana sayfa = "Yeni sohbet / Karşılaştırma" başlangıç ekranı.
+    // Kullanıcı modu seçer (Sohbet veya Karşılaştırma), modellerini belirler ve ilk mesajını gönderir.
+    public async Task<IActionResult> Index(string? mode = null, CancellationToken ct = default)
     {
-        var vm = new NewChatViewModel { IsSignedIn = User.Identity?.IsAuthenticated == true };
+        var vm = new NewChatViewModel
+        {
+            IsSignedIn = User.Identity?.IsAuthenticated == true,
+            Mode = string.Equals(mode, "compare", StringComparison.OrdinalIgnoreCase) ? "compare" : "chat"
+        };
 
         var userId = _userManager.GetUserId(User);
         if (userId is null)
@@ -42,6 +46,9 @@ public class HomeController : Controller
         vm.SelectedModelId = vm.ActiveModels.Any(m => m.Id == lastSession?.ModelId)
             ? lastSession!.ModelId
             : vm.ActiveModels.FirstOrDefault()?.Id ?? 0;
+
+        vm.ModelAId = vm.SelectedModelId;
+        vm.ModelBId = vm.ActiveModels.FirstOrDefault(m => m.Id != vm.ModelAId)?.Id ?? 0;
 
         return View(vm);
     }

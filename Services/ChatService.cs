@@ -57,6 +57,21 @@ public class ChatService
             .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId, ct);
     }
 
+    public async Task<bool> DeleteSessionAsync(int sessionId, string userId, CancellationToken ct = default)
+    {
+        var session = await _db.ChatSessions
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId, ct);
+
+        if (session is null)
+        {
+            return false;
+        }
+
+        _db.ChatSessions.Remove(session);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<bool> HasApiKeyAsync(string userId)
     {
         return !string.IsNullOrWhiteSpace(await _apiKeys.GetDecryptedKeyAsync(userId));
