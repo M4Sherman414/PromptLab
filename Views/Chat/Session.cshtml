@@ -35,6 +35,12 @@
             <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-plus-lg me-1"></i>Yeni sohbet
             </a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                  onsubmit="return confirm('Bu sohbeti ve tüm mesajlarını silmek istediğinize emin misiniz?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm" title="Sohbeti sil">
+                    <i class="bi bi-trash me-1"></i>Sil
+                </button>
+            </form>
         </div>
     </div>
 

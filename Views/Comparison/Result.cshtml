@@ -29,9 +29,20 @@
             </div>
         </div>
 
-        <a asp-controller="Home" asp-action="Index" asp-route-mode="compare" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-plus-lg me-1"></i>Yeni karşılaştırma
-        </a>
+        <div class="d-flex gap-2">
+            <a asp-controller="Chat" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-list-ul me-1"></i>Sohbetlerim
+            </a>
+            <a asp-controller="Home" asp-action="Index" asp-route-mode="compare" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Yeni karşılaştırma
+            </a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                  onsubmit="return confirm('Bu karşılaştırmayı silmek istediğinize emin misiniz?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm" title="Karşılaştırmayı sil">
+                    <i class="bi bi-trash me-1"></i>Sil
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="battle-prompt-card">

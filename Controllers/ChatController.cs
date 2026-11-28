@@ -212,4 +212,31 @@ public class ChatController : Controller
 
         return RedirectToAction(nameof(Session), new { id });
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        var deleted = await _chat.DeleteSessionAsync(id, CurrentUserId, ct);
+        var isAjax = RequireApiKeyFilter.IsAjax(Request);
+
+        if (!deleted)
+        {
+            if (isAjax)
+            {
+                return NotFound(new { error = "Sohbet bulunamadı." });
+            }
+
+            TempData["Error"] = "Sohbet bulunamadı.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (isAjax)
+        {
+            return Ok(new { deleted = true });
+        }
+
+        TempData["Message"] = "Sohbet silindi.";
+        return RedirectToAction(nameof(Index));
+    }
 }

@@ -157,4 +157,31 @@ public class ComparisonController : Controller
         ViewBag.HasApiKey = keyStatus is ApiKeyStatus.Valid or ApiKeyStatus.Unknown;
         return View(comparison);
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        var deleted = await _comparison.DeleteComparisonAsync(id, CurrentUserId, ct);
+        var isAjax = RequireApiKeyFilter.IsAjax(Request);
+
+        if (!deleted)
+        {
+            if (isAjax)
+            {
+                return NotFound(new { error = "Karşılaştırma bulunamadı." });
+            }
+
+            TempData["Error"] = "Karşılaştırma bulunamadı.";
+            return RedirectToAction("Index", "Chat");
+        }
+
+        if (isAjax)
+        {
+            return Ok(new { deleted = true });
+        }
+
+        TempData["Message"] = "Karşılaştırma silindi.";
+        return RedirectToAction("Index", "Chat");
+    }
 }

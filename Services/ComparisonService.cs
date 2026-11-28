@@ -59,6 +59,21 @@ public class ComparisonService
             .FirstOrDefaultAsync(c => c.Id == comparisonId && c.UserId == userId, ct);
     }
 
+    public async Task<bool> DeleteComparisonAsync(int comparisonId, string userId, CancellationToken ct = default)
+    {
+        var comparison = await _db.Comparisons
+            .FirstOrDefaultAsync(c => c.Id == comparisonId && c.UserId == userId, ct);
+
+        if (comparison is null)
+        {
+            return false;
+        }
+
+        _db.Comparisons.Remove(comparison);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     /// <summary>
     /// Karşılaştırmayı ve iki model için bekleyen (henüz yanıtlanmamış) slot kayıtlarını oluşturur.
     /// İstemci ardından iki slotu paralel olarak çalıştırabilir.
