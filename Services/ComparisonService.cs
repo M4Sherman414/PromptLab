@@ -38,6 +38,17 @@ public class ComparisonService
             .ToListAsync(ct);
     }
 
+    public Task<List<Comparison>> GetUserComparisonsAsync(string userId, CancellationToken ct = default)
+    {
+        return _db.Comparisons
+            .AsNoTracking()
+            .Include(c => c.ComparisonResults.OrderBy(r => r.Slot))
+                .ThenInclude(r => r.ModelCatalog)
+            .Where(c => c.UserId == userId)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(ct);
+    }
+
     public Task<Comparison?> GetComparisonAsync(int comparisonId, string userId, CancellationToken ct = default)
     {
         return _db.Comparisons
@@ -49,6 +60,98 @@ public class ComparisonService
     }
 
     /// <summary>
+    /// Karşılaştırmayı ve iki model için bekleyen (henüz yanıtlanmamış) slot kayıtlarını oluşturur.
+    /// İstemci ardından iki slotu paralel olarak çalıştırabilir.
+    /// </summary>
+    public async Task<Comparison> StartComparisonAsync(
+        string userId,
+        ComparisonRequest request,
+        CancellationToken ct = default)
+    {
+        var (modelA, modelB, apiKey, trimmedSystem, trimmedPrompt) =
+            await PrepareComparisonAsync(userId, request, ct);
+
+        _ = apiKey; // Anahtar varlığı doğrulandı.
+
+        var comparison = new Comparison
+        {
+            UserId = userId,
+            SystemPrompt = trimmedSystem,
+            UserPrompt = trimmedPrompt,
+            Temperature = request.Temperature,
+            MaxTokens = request.MaxTokens,
+            IsBlind = request.IsBlind,
+            CreatedAt = DateTime.UtcNow,
+            ComparisonResults = new List<ComparisonResult>
+            {
+                new() { ModelId = modelA.Id, Slot = ResultSlot.A },
+                new() { ModelId = modelB.Id, Slot = ResultSlot.B }
+            }
+        };
+
+        _db.Comparisons.Add(comparison);
+        await _db.SaveChangesAsync(ct);
+
+        foreach (var result in comparison.ComparisonResults)
+        {
+            result.ModelCatalog = result.ModelId == modelA.Id ? modelA : modelB;
+        }
+
+        return comparison;
+    }
+
+    /// <summary>
+    /// Daha önce oluşturulmuş bir karşılaştırmanın tek bir slotunu (A veya B) çalıştırıp sonucu kaydeder.
+    /// Slot zaten tamamlanmışsa tekrar istek atmaz.
+    /// </summary>
+    public async Task<ComparisonResult> ExecuteSlotAsync(
+        int comparisonId,
+        string userId,
+        ResultSlot slot,
+        CancellationToken ct = default)
+    {
+        var result = await _db.ComparisonResults
+            .Include(r => r.Comparison)
+            .Include(r => r.ModelCatalog)
+            .FirstOrDefaultAsync(
+                r => r.ComparisonId == comparisonId
+                     && r.Slot == slot
+                     && r.Comparison != null
+                     && r.Comparison.UserId == userId,
+                ct);
+
+        if (result is null || result.Comparison is null || result.ModelCatalog is null)
+        {
+            throw new KeyNotFoundException("Karşılaştırma kaydı bulunamadı.");
+        }
+
+        if (result.Output is not null || result.Error is not null)
+        {
+            return result;
+        }
+
+        var apiKey = await _apiKeys.GetDecryptedKeyAsync(userId);
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new MissingApiKeyException();
+        }
+
+        var messages = BuildMessages(result.Comparison.SystemPrompt, result.Comparison.UserPrompt);
+        await PopulateResultAsync(
+            result,
+            userId,
+            apiKey,
+            result.ModelCatalog,
+            messages,
+            result.Comparison.Temperature,
+            result.Comparison.MaxTokens,
+            ct);
+
+        await _db.SaveChangesAsync(ct);
+        return result;
+    }
+
+    /// <summary>
     /// Aynı prompt'u iki aktif modele paralel olarak gönderir, gelen cevapları ve ölçümleri
     /// Comparison + iki adet ComparisonResult kaydı olarak veritabanına yazar.
     /// </summary>
@@ -56,6 +159,44 @@ public class ComparisonService
         string userId,
         ComparisonRequest request,
         CancellationToken ct = default)
+    {
+        var (modelA, modelB, apiKey, trimmedSystem, trimmedPrompt) =
+            await PrepareComparisonAsync(userId, request, ct);
+
+        var messages = BuildMessages(trimmedSystem, trimmedPrompt);
+
+        // DbContext thread-safe olmadığı için paralel görevler yalnızca HTTP çağrısı yapar;
+        // veritabanı kaydı iki görev de bittikten sonra tek seferde yapılır.
+        var resultA = new ComparisonResult { ModelId = modelA.Id, Slot = ResultSlot.A };
+        var resultB = new ComparisonResult { ModelId = modelB.Id, Slot = ResultSlot.B };
+
+        await Task.WhenAll(
+            PopulateResultAsync(resultA, userId, apiKey, modelA, messages, request.Temperature, request.MaxTokens, ct),
+            PopulateResultAsync(resultB, userId, apiKey, modelB, messages, request.Temperature, request.MaxTokens, ct));
+
+        var comparison = new Comparison
+        {
+            UserId = userId,
+            SystemPrompt = trimmedSystem,
+            UserPrompt = trimmedPrompt,
+            Temperature = request.Temperature,
+            MaxTokens = request.MaxTokens,
+            IsBlind = request.IsBlind,
+            CreatedAt = DateTime.UtcNow,
+            ComparisonResults = new List<ComparisonResult> { resultA, resultB }
+        };
+
+        _db.Comparisons.Add(comparison);
+        await _db.SaveChangesAsync(ct);
+
+        resultA.ModelCatalog = modelA;
+        resultB.ModelCatalog = modelB;
+
+        return comparison;
+    }
+
+    private async Task<(ModelCatalog ModelA, ModelCatalog ModelB, string ApiKey, string? SystemPrompt, string UserPrompt)>
+        PrepareComparisonAsync(string userId, ComparisonRequest request, CancellationToken ct)
     {
         ValidateRequest(request);
 
@@ -81,42 +222,14 @@ public class ComparisonService
             ? null
             : request.SystemPrompt.Trim();
 
-        var messages = BuildMessages(trimmedSystem, trimmedPrompt);
-
-        // DbContext thread-safe olmadığı için paralel görevler yalnızca HTTP çağrısı yapar;
-        // veritabanı kaydı iki görev de bittikten sonra tek seferde yapılır.
-        var taskA = ExecuteModelAsync(userId, apiKey, modelA, ResultSlot.A, messages, request.Temperature, request.MaxTokens, ct);
-        var taskB = ExecuteModelAsync(userId, apiKey, modelB, ResultSlot.B, messages, request.Temperature, request.MaxTokens, ct);
-        var results = await Task.WhenAll(taskA, taskB);
-
-        var comparison = new Comparison
-        {
-            UserId = userId,
-            SystemPrompt = trimmedSystem,
-            UserPrompt = trimmedPrompt,
-            Temperature = request.Temperature,
-            MaxTokens = request.MaxTokens,
-            IsBlind = request.IsBlind,
-            CreatedAt = DateTime.UtcNow,
-            ComparisonResults = results.ToList()
-        };
-
-        _db.Comparisons.Add(comparison);
-        await _db.SaveChangesAsync(ct);
-
-        foreach (var result in comparison.ComparisonResults)
-        {
-            result.ModelCatalog = result.ModelId == modelA.Id ? modelA : modelB;
-        }
-
-        return comparison;
+        return (modelA, modelB, apiKey, trimmedSystem, trimmedPrompt);
     }
 
-    private async Task<ComparisonResult> ExecuteModelAsync(
+    private async Task PopulateResultAsync(
+        ComparisonResult target,
         string userId,
         string apiKey,
         ModelCatalog model,
-        ResultSlot slot,
         IReadOnlyList<OpenRouterMessage> messages,
         double? temperature,
         int? maxTokens,
@@ -142,17 +255,13 @@ public class ComparisonService
                 ? Math.Round(response.CompletionTokens / (elapsedMs / 1000.0), 2)
                 : null;
 
-            return new ComparisonResult
-            {
-                ModelId = model.Id,
-                Slot = slot,
-                Output = response.Content,
-                LatencyMs = elapsedMs,
-                InputTokens = response.PromptTokens,
-                OutputTokens = response.CompletionTokens,
-                TokensPerSecond = tokensPerSecond,
-                EstimatedCost = estimatedCost
-            };
+            target.Output = response.Content;
+            target.LatencyMs = elapsedMs;
+            target.InputTokens = response.PromptTokens;
+            target.OutputTokens = response.CompletionTokens;
+            target.TokensPerSecond = tokensPerSecond;
+            target.EstimatedCost = estimatedCost;
+            target.Error = null;
         }
         catch (HttpRequestException ex)
         {
@@ -162,35 +271,20 @@ public class ComparisonService
                 _apiKeys.ForgetCheck(userId);
             }
 
-            return new ComparisonResult
-            {
-                ModelId = model.Id,
-                Slot = slot,
-                LatencyMs = (int)stopwatch.ElapsedMilliseconds,
-                Error = FormatHttpError(ex)
-            };
+            target.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
+            target.Error = FormatHttpError(ex);
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             stopwatch.Stop();
-            return new ComparisonResult
-            {
-                ModelId = model.Id,
-                Slot = slot,
-                LatencyMs = (int)stopwatch.ElapsedMilliseconds,
-                Error = "Model isteği zaman aşımına uğradı."
-            };
+            target.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
+            target.Error = "Model isteği zaman aşımına uğradı.";
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             stopwatch.Stop();
-            return new ComparisonResult
-            {
-                ModelId = model.Id,
-                Slot = slot,
-                LatencyMs = (int)stopwatch.ElapsedMilliseconds,
-                Error = $"Model yanıtı alınırken beklenmeyen bir hata oluştu: {ex.Message}"
-            };
+            target.LatencyMs = (int)stopwatch.ElapsedMilliseconds;
+            target.Error = $"Model yanıtı alınırken beklenmeyen bir hata oluştu: {ex.Message}";
         }
     }
 

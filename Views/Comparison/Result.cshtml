@@ -1,38 +1,69 @@
+@using System.Globalization
 @using PromptLab.Models
 @model Comparison
 @{
-    ViewData["Title"] = "Karşılaştırma Sonucu";
+    ViewData["Title"] = $"Karşılaştırma #{Model.Id}";
     var resultA = Model.ComparisonResults.FirstOrDefault(r => r.Slot == ResultSlot.A);
     var resultB = Model.ComparisonResults.FirstOrDefault(r => r.Slot == ResultSlot.B);
 }
 
-<div class="mx-auto" style="max-width: 1100px;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">Karşılaştırma #@Model.Id</h1>
-        <a asp-action="Index" class="btn btn-outline-primary btn-sm">
+@section Styles {
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/comparison.css" asp-append-version="true" />
+}
+
+<div class="mx-auto" style="max-width: 1120px;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Karşılaştırma #@Model.Id</h1>
+            <div class="small text-muted d-flex flex-wrap gap-2 align-items-center">
+                <span><i class="bi bi-clock me-1"></i>@Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                @if (Model.Temperature.HasValue)
+                {
+                    <span class="badge text-bg-light border">Temperature: @Model.Temperature.Value.ToString("0.##", CultureInfo.InvariantCulture)</span>
+                }
+                @if (Model.MaxTokens.HasValue)
+                {
+                    <span class="badge text-bg-light border">Max tokens: @Model.MaxTokens.Value</span>
+                }
+            </div>
+        </div>
+
+        <a asp-controller="Home" asp-action="Index" asp-route-mode="compare" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-plus-lg me-1"></i>Yeni karşılaştırma
         </a>
     </div>
 
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="small text-muted mb-1">Prompt</div>
-            <div style="white-space: pre-wrap;">@Model.UserPrompt</div>
-        </div>
+    <div class="battle-prompt-card">
+        <div class="small text-muted fw-semibold mb-1">Siz</div>
+        <div class="battle-prompt-text">@Model.UserPrompt</div>
+        @if (!string.IsNullOrWhiteSpace(Model.SystemPrompt))
+        {
+            <div class="small text-muted mt-2">System prompt: @Model.SystemPrompt</div>
+        }
     </div>
 
-    <div class="row g-3">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header fw-semibold">Model A: @(resultA?.ModelCatalog?.DisplayName ?? "-")</div>
-                <div class="card-body" style="white-space: pre-wrap;">@(resultA?.Error ?? resultA?.Output)</div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header fw-semibold">Model B: @(resultB?.ModelCatalog?.DisplayName ?? "-")</div>
-                <div class="card-body" style="white-space: pre-wrap;">@(resultB?.Error ?? resultB?.Output)</div>
-            </div>
+    <div id="comparison-result-stage"
+         data-comparison-id="@Model.Id"
+         data-slot-url="@Url.Action("RunSlot", "Comparison")">
+        @Html.AntiForgeryToken()
+        <div class="row g-3">
+            @if (resultA is not null)
+            {
+                <div class="col-md-6" id="slot-container-A">
+                    <partial name="_ComparisonResultCard" model="resultA" />
+                </div>
+            }
+            @if (resultB is not null)
+            {
+                <div class="col-md-6" id="slot-container-B">
+                    <partial name="_ComparisonResultCard" model="resultB" />
+                </div>
+            }
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/comparison.js" asp-append-version="true"></script>
+}

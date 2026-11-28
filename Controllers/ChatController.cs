@@ -12,12 +12,18 @@ namespace PromptLab.Controllers;
 public class ChatController : Controller
 {
     private readonly ChatService _chat;
+    private readonly ComparisonService _comparison;
     private readonly ApiKeyService _apiKeys;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public ChatController(ChatService chat, ApiKeyService apiKeys, UserManager<ApplicationUser> userManager)
+    public ChatController(
+        ChatService chat,
+        ComparisonService comparison,
+        ApiKeyService apiKeys,
+        UserManager<ApplicationUser> userManager)
     {
         _chat = chat;
+        _comparison = comparison;
         _apiKeys = apiKeys;
         _userManager = userManager;
     }
@@ -27,8 +33,65 @@ public class ChatController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
+        // DbContext eşzamanlı sorgu desteklemediği için sırayla çekilir.
         var sessions = await _chat.GetUserSessionsAsync(CurrentUserId, ct);
-        return View(sessions);
+        var comparisons = await _comparison.GetUserComparisonsAsync(CurrentUserId, ct);
+
+        var items = new List<ChatHistoryItem>(sessions.Count + comparisons.Count);
+
+        foreach (var session in sessions)
+        {
+            items.Add(new ChatHistoryItem
+            {
+                Id = session.Id,
+                Kind = HistoryItemKind.Chat,
+                Title = session.Title,
+                ModelSummary = session.ModelCatalog?.DisplayName ?? "Bilinmeyen model",
+                IsFreeOnly = session.ModelCatalog?.IsFree == true,
+                ActivityAt = session.UpdatedAt
+            });
+        }
+
+        foreach (var comparison in comparisons)
+        {
+            var resultA = comparison.ComparisonResults.FirstOrDefault(r => r.Slot == ResultSlot.A);
+            var resultB = comparison.ComparisonResults.FirstOrDefault(r => r.Slot == ResultSlot.B);
+            var modelAName = resultA?.ModelCatalog?.DisplayName ?? "Model A";
+            var modelBName = resultB?.ModelCatalog?.DisplayName ?? "Model B";
+
+            items.Add(new ChatHistoryItem
+            {
+                Id = comparison.Id,
+                Kind = HistoryItemKind.Comparison,
+                Title = BuildComparisonTitle(comparison.UserPrompt),
+                ModelSummary = $"{modelAName} vs {modelBName}",
+                IsFreeOnly = resultA?.ModelCatalog?.IsFree == true && resultB?.ModelCatalog?.IsFree == true,
+                HasError = !string.IsNullOrWhiteSpace(resultA?.Error) || !string.IsNullOrWhiteSpace(resultB?.Error),
+                IsPending = (resultA is not null && resultA.Output is null && string.IsNullOrWhiteSpace(resultA.Error))
+                            || (resultB is not null && resultB.Output is null && string.IsNullOrWhiteSpace(resultB.Error)),
+                ActivityAt = comparison.CreatedAt
+            });
+        }
+
+        var vm = new ChatHistoryViewModel
+        {
+            Items = items.OrderByDescending(i => i.ActivityAt).ToList(),
+            ChatCount = sessions.Count,
+            ComparisonCount = comparisons.Count
+        };
+
+        return View(vm);
+    }
+
+    private static string BuildComparisonTitle(string prompt)
+    {
+        var singleLine = string.Join(' ', prompt.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (singleLine.Length <= 80)
+        {
+            return singleLine;
+        }
+
+        return singleLine[..77] + "...";
     }
 
     // Yeni sohbet ekranı artık ana sayfa (Home/Index). Eski adres oraya yönlenir.

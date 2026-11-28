@@ -1,16 +1,26 @@
-@model List<PromptLab.Models.ChatSession>
+@using PromptLab.Models.ViewModels
+@model ChatHistoryViewModel
 @{
     ViewData["Title"] = "Sohbetlerim";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+@section Styles {
+    <link rel="stylesheet" href="~/css/comparison.css" asp-append-version="true" />
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <div>
         <h1 class="mb-1">Sohbetlerim</h1>
-        <p class="text-muted mb-0">Geçmiş sohbetlerinize devam edebilir veya yeni bir sohbet başlatabilirsiniz.</p>
+        <p class="text-muted mb-0">Geçmiş sohbetlerinize ve model karşılaştırmalarınıza buradan dönebilirsiniz.</p>
     </div>
-    <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i> Yeni sohbet
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-controller="Home" asp-action="Index" asp-route-mode="compare" class="btn btn-outline-secondary">
+            <i class="bi bi-layout-split me-1"></i> Yeni karşılaştırma
+        </a>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Yeni sohbet
+        </a>
+    </div>
 </div>
 
 @if (TempData["Message"] is string message)
@@ -23,40 +33,110 @@
     <div class="alert alert-danger">@error</div>
 }
 
-@if (Model.Count == 0)
+@if (Model.Items.Count == 0)
 {
     <div class="card">
         <div class="card-body text-center py-5">
             <i class="bi bi-chat-left-text fs-1 text-muted d-block mb-3"></i>
-            <h2 class="h5">Henüz sohbetiniz yok</h2>
-            <p class="text-muted mb-3">Aktif modellerden birini seçerek ilk sohbetinizi başlatın.</p>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Yeni sohbet başlat</a>
+            <h2 class="h5">Henüz sohbet veya karşılaştırmanız yok</h2>
+            <p class="text-muted mb-3">Aktif modellerden seçerek ilk sohbetinizi veya karşılaştırmanızı başlatın.</p>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Başla</a>
         </div>
     </div>
 }
 else
 {
-    <div class="list-group shadow-sm">
-        @foreach (var session in Model)
+    <div class="mb-3">
+        <div class="mode-switch" role="group" aria-label="Geçmiş filtresi" id="history-filter">
+            <button type="button" class="mode-switch-btn active" data-filter="all">
+                Tümü (@Model.Items.Count)
+            </button>
+            <button type="button" class="mode-switch-btn" data-filter="chat">
+                <i class="bi bi-chat-dots me-1"></i>Sohbetler (@Model.ChatCount)
+            </button>
+            <button type="button" class="mode-switch-btn" data-filter="comparison">
+                <i class="bi bi-layout-split me-1"></i>Karşılaştırmalar (@Model.ComparisonCount)
+            </button>
+        </div>
+    </div>
+
+    <div class="list-group shadow-sm" id="history-list">
+        @foreach (var item in Model.Items)
         {
-            <a asp-action="Session" asp-route-id="@session.Id" class="list-group-item list-group-item-action py-3">
+            var isComparison = item.Kind == HistoryItemKind.Comparison;
+            var filterKind = isComparison ? "comparison" : "chat";
+            var controller = isComparison ? "Comparison" : "Chat";
+            var action = isComparison ? "Result" : "Session";
+
+            <a asp-controller="@controller" asp-action="@action" asp-route-id="@item.Id"
+               class="list-group-item list-group-item-action py-3"
+               data-kind="@filterKind">
                 <div class="d-flex justify-content-between align-items-start gap-3">
                     <div class="text-truncate">
-                        <div class="fw-semibold text-truncate">@session.Title</div>
-                        <div class="small text-muted mt-1">
-                            <i class="bi bi-cpu me-1"></i>
-                            @(session.ModelCatalog?.DisplayName ?? "Bilinmeyen model")
-                            @if (session.ModelCatalog?.IsFree == true)
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge @(isComparison ? "text-bg-light border text-dark" : "text-bg-light border text-secondary")">
+                                <i class="bi @(isComparison ? "bi-layout-split" : "bi-chat-dots") me-1"></i>@(isComparison ? "Karşılaştırma" : "Sohbet")
+                            </span>
+                            <span class="fw-semibold text-truncate">@item.Title</span>
+                        </div>
+                        <div class="small text-muted">
+                            <i class="bi bi-cpu me-1"></i>@item.ModelSummary
+                            @if (item.IsFreeOnly)
                             {
                                 <span class="badge bg-success ms-1">Ücretsiz</span>
+                            }
+                            @if (item.IsPending)
+                            {
+                                <span class="badge text-bg-warning ms-1">Bekliyor</span>
+                            }
+                            else if (item.HasError)
+                            {
+                                <span class="badge text-bg-danger ms-1">Hata</span>
                             }
                         </div>
                     </div>
                     <small class="text-muted text-nowrap">
-                        @session.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        @item.ActivityAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
                     </small>
                 </div>
             </a>
         }
     </div>
+
+    <div class="card d-none" id="history-empty-filter">
+        <div class="card-body text-center py-4 text-muted">
+            Bu kategoride henüz kayıt bulunmuyor.
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            const filter = document.getElementById("history-filter");
+            const list = document.getElementById("history-list");
+            const emptyState = document.getElementById("history-empty-filter");
+            if (!filter || !list) return;
+
+            const buttons = filter.querySelectorAll(".mode-switch-btn");
+            const rows = list.querySelectorAll("[data-kind]");
+
+            buttons.forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    const selected = btn.dataset.filter;
+                    buttons.forEach(b => b.classList.toggle("active", b === btn));
+
+                    let visibleCount = 0;
+                    rows.forEach(function (row) {
+                        const show = selected === "all" || row.dataset.kind === selected;
+                        row.classList.toggle("d-none", !show);
+                        if (show) visibleCount++;
+                    });
+
+                    list.classList.toggle("d-none", visibleCount === 0);
+                    emptyState?.classList.toggle("d-none", visibleCount > 0);
+                });
+            });
+        })();
+    </script>
 }

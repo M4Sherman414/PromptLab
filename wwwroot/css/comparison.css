@@ -1,0 +1,132 @@
+/* Ana sayfa mod seçimi ve yan yana karşılaştırma görünümü */
+
+.mode-switch {
+    display: inline-flex;
+    padding: 0.25rem;
+    background: #e9ecef;
+    border-radius: 999px;
+    gap: 0.2rem;
+}
+
+.mode-switch-btn {
+    border: none;
+    background: transparent;
+    color: #495057;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.35rem 0.95rem;
+    border-radius: 999px;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mode-switch-btn:hover {
+    color: #212529;
+}
+
+.mode-switch-btn.active {
+    background: #ffffff;
+    color: #212529;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.new-chat.is-battle-active {
+    max-width: 1120px;
+    min-height: auto;
+    justify-content: flex-start;
+    padding-top: 0.5rem;
+}
+
+.compare-model-pickers {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.compare-model-select {
+    flex: 1 1 170px;
+    min-width: 140px;
+    max-width: 240px;
+}
+
+.compare-vs {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+/* Battle / Sonuç alanı */
+
+.battle-stage {
+    margin-top: 1.5rem;
+}
+
+.battle-prompt-card {
+    background: #f1f3f5;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.battle-prompt-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.comparison-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.comparison-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f3f5;
+    background: #ffffff;
+}
+
+.comparison-card-body {
+    flex: 1 1 auto;
+    padding: 1rem;
+    min-height: 180px;
+    max-height: 520px;
+    overflow-y: auto;
+}
+
+.comparison-output {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    color: #212529;
+}
+
+.comparison-card-footer {
+    padding: 0.55rem 1rem;
+    border-top: 1px solid #f1f3f5;
+    background: #fafafa;
+}
+
+.comparison-card-footer .chat-metrics {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+@media (max-width: 767.98px) {
+    .compare-model-select {
+        max-width: 100%;
+    }
+}
