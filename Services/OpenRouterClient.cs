@@ -42,9 +42,11 @@ public class OpenRouterClient
         string apiKey,
         string model,
         IEnumerable<OpenRouterMessage> messages,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        double? temperature = null,
+        int? maxTokens = null)
     {
-        using var request = BuildChatRequest(apiKey, model, messages, stream: false);
+        using var request = BuildChatRequest(apiKey, model, messages, stream: false, temperature, maxTokens);
         using var response = await _http.SendAsync(request, ct);
         await EnsureSuccessAsync(response, ct);
 
@@ -65,14 +67,28 @@ public class OpenRouterClient
         };
     }
 
-    private static HttpRequestMessage BuildChatRequest(string apiKey, string model, IEnumerable<OpenRouterMessage> messages,
-    bool stream)
+    private static HttpRequestMessage BuildChatRequest(
+        string apiKey,
+        string model,
+        IEnumerable<OpenRouterMessage> messages,
+        bool stream,
+        double? temperature = null,
+        int? maxTokens = null)
     {
+        var payload = new OpenRouterChatRequest
+        {
+            Model = model,
+            Messages = messages,
+            Stream = stream,
+            Temperature = temperature,
+            MaxTokens = maxTokens
+        };
+
         var request = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
         {
-            Content = JsonContent.Create(new { model, messages, stream })
+            Content = JsonContent.Create(payload)
         };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
         return request;
     }
 

@@ -47,6 +47,7 @@ builder.Services.AddDataProtection()
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ApiKeyService>();
 builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<ComparisonService>();
 
 var app = builder.Build();
 
